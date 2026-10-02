@@ -15,7 +15,11 @@ export default async function HomePage() {
 
   const trailers = moviesWithTrailers(movies);
   const heroPool = trailers.length ? trailers : movies;
-  const heroMovies = heroPool.slice(0, 8);
+  // Movies with our own R2 trailer go first, so the hero plays from R2 rather than Drive.
+  const heroMovies = heroPool
+    .slice()
+    .sort((a, b) => Number(!!b.trailerVideoUrl) - Number(!!a.trailerVideoUrl))
+    .slice(0, 8);
   const renderedAt = new Date().toISOString();
 
   const genreRows = GENRES.map((genre) => ({

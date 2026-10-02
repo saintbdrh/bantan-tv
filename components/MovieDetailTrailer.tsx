@@ -5,6 +5,7 @@ import type { Movie } from '@/types';
 import { TrailerVideo } from '@/components/TrailerVideo';
 import { pickVideo, TRAILER_SKIP_SECONDS } from '@/lib/trailer';
 import { isEmbedUrl } from '@/lib/epg';
+import { useSound } from '@/lib/sound';
 
 function youtubeEmbed(url?: string | null, id?: string | null): string | null {
   if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${TRAILER_SKIP_SECONDS}&rel=0&playsinline=1`;
@@ -25,7 +26,8 @@ function youtubeEmbed(url?: string | null, id?: string | null): string | null {
 
 export function MovieDetailTrailer({ movie }: { movie: Movie }) {
   const [failed, setFailed] = useState<Record<string, boolean>>({});
-  const [muted, setMuted] = useState(true);
+  const [soundOn, setSound] = useSound();
+  const muted = !soundOn;
 
   const onFailed = useCallback((kind: string) => {
     setFailed((f) => ({ ...f, [`${movie.id}:${kind}`]: true }));
@@ -52,6 +54,7 @@ export function MovieDetailTrailer({ movie }: { movie: Movie }) {
             startAt={video.startAt}
             poster={movie.backdrop || movie.poster}
             muted={muted}
+            play
             onFail={() => onFailed(video.kind)}
           />
         ) : (
@@ -68,7 +71,7 @@ export function MovieDetailTrailer({ movie }: { movie: Movie }) {
         <button
           type="button"
           className="detail-mute-btn"
-          onClick={() => setMuted((m) => !m)}
+          onClick={() => setSound(muted)}
           aria-label={muted ? 'Дуу оруулах' : 'Дуу хаах'}
         >
           {muted ? 'Дуугүй' : 'Дуутай'}

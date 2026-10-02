@@ -8,6 +8,7 @@ import { isEmbedUrl } from '@/lib/epg';
 import { canOptimize } from '@/lib/images';
 import { pickVideo } from '@/lib/trailer';
 import { TrailerVideo } from '@/components/TrailerVideo';
+import { useSound } from '@/lib/sound';
 
 function trailerEmbedUrl(movie: Movie, muted: boolean): string | null {
   const muteParam = muted ? 1 : 0;
@@ -54,7 +55,8 @@ const SWIPE_MIN_PX = 50;
 export function Hero({ movies }: { movies: Movie[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [soundOn, setSound] = useSound();
+  const muted = !soundOn;
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [trailerReady, setTrailerReady] = useState(false);
   const [inView, setInView] = useState(true);
@@ -151,7 +153,7 @@ export function Hero({ movies }: { movies: Movie[] }) {
       e.preventDefault();
       go(1);
     } else if (e.key === 'm' || e.key === 'M') {
-      setMuted((m) => !m);
+      setSound(muted);
     }
   };
 
@@ -259,7 +261,7 @@ export function Hero({ movies }: { movies: Movie[] }) {
                 className="icon-button hero-mute-btn"
                 aria-label={muted ? 'Дуу нээх' : 'Дуу хаах'}
                 aria-pressed={!muted}
-                onClick={() => setMuted((m) => !m)}
+                onClick={() => setSound(muted)}
               >
                 {muted ? '🔇' : '🔊'}
               </button>

@@ -110,7 +110,7 @@ export async function getCategories(): Promise<string[]> {
 
 /** Movies that have a playable trailer (Drive embed, direct file, or YouTube) */
 export function moviesWithTrailers(movies: Movie[]): Movie[] {
-  return movies.filter((m) => m.trailerUrl || m.youtubeId);
+  return movies.filter((m) => m.trailerVideoUrl || m.trailerUrl || m.youtubeId);
 }
 
 export function getTrailerEmbedSrc(movie: Movie): string | null {

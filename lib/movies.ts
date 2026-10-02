@@ -1,6 +1,7 @@
 import { Movie } from '@/types';
 import { parseGenres } from '@/lib/genres';
 import { GENRE_OVERRIDES } from '@/lib/genre-overrides';
+import { fetchR2TrailerIndex } from '@/lib/r2';
 import { catalogDescription, catalogGenresFor, getCatalogEntry } from '@/lib/catalog';
 import {
   fetchEpgData,
@@ -23,7 +24,11 @@ function slugify(title: string): string {
 const MEDIA_BASE_URL = (process.env.MEDIA_BASE_URL || '').replace(/\/+$/, '');
 
 export async function getMovies(): Promise<Movie[]> {
-  const [epgData, media] = await Promise.all([fetchEpgData(), fetchAllMedia()]);
+  const [epgData, media, r2Trailer] = await Promise.all([
+    fetchEpgData(),
+    fetchAllMedia(),
+    fetchR2TrailerIndex(),
+  ]);
 
   const byTitle = new Map<string, EpgItem>();
   DAYS.forEach((day) => {
@@ -71,9 +76,12 @@ export async function getMovies(): Promise<Movie[]> {
       poster,
       backdrop: entry.backdrop || match?.backdropUrl || match?.image || poster,
       trailerUrl,
-      trailerVideoUrl: MEDIA_BASE_URL
-        ? `${MEDIA_BASE_URL}/trailers/${encodeURIComponent(slugify(entry.title))}.mp4`
-        : undefined,
+      // R2 trailer (via the Worker) first; MEDIA_BASE_URL only as a fallback.
+      trailerVideoUrl:
+        r2Trailer(entry.title) ??
+        (MEDIA_BASE_URL
+          ? `${MEDIA_BASE_URL}/trailers/${encodeURIComponent(slugify(entry.title))}.mp4`
+          : undefined),
       youtubeId,
       // Raw video file only (not Drive /preview embeds)
       video: trailerUrl && !isEmbedUrl(trailerUrl) ? trailerUrl : undefined,

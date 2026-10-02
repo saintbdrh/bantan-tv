@@ -52,7 +52,7 @@ export function MovieDetailTrailer({ movie }: { movie: Movie }) {
             startAt={video.startAt}
             poster={movie.backdrop || movie.poster}
             muted={muted}
-            onFailed={() => onFailed(video.kind)}
+            onFail={() => onFailed(video.kind)}
           />
         ) : (
           <iframe

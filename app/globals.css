@@ -1040,6 +1040,10 @@ button {
 @media (max-width: 1024px) {
   .epg-grid {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "days"
+      "schedule"
+      "highlight";
   }
   .epg-panel {
     min-height: unset;

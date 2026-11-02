@@ -52,6 +52,7 @@ export function Footer() {
         <nav aria-label="Хөлийн цэс" className="footer-nav">
           <Link href="/">Нүүр</Link>
           <Link href="/movies">Кино сан</Link>
+          <Link href="/games">Тоглоом</Link>
           <Link href="/schedule">Хөтөлбөр</Link>
           <Link href="/sanal">Санал</Link>
           <Link href="/about">Бидний тухай</Link>

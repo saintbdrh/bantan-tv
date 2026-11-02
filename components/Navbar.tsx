@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 const navItems = [
   { label: 'Нүүр', href: '/' },
   { label: 'Кино сан', href: '/movies' },
+  { label: 'Тоглоом', href: '/games' },
   { label: 'Хөтөлбөр', href: '/schedule' },
   { label: 'Санал', href: '/sanal' },
   { label: 'Бидний тухай', href: '/about' }

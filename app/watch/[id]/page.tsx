@@ -6,8 +6,9 @@ import { HomeBack } from '@/components/HomeBack';
 import { getMovieById } from '@/lib/movies';
 import { isEmbedUrl } from '@/lib/epg';
 
-export default async function WatchPage({ params }: { params: { id: string } }) {
-  const movie = await getMovieById(params.id);
+export default async function WatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const movie = await getMovieById(id);
   if (!movie) notFound();
 
   const embed =

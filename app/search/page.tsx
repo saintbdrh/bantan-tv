@@ -8,9 +8,10 @@ import { displayCategory } from '@/lib/genres';
 export default async function SearchPage({
   searchParams
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const q = (searchParams.q ?? '').trim().toLowerCase();
+  const { q: rawQ } = await searchParams;
+  const q = (rawQ ?? '').trim().toLowerCase();
   const movies = withPosters(await getMovies());
   const results = q
     ? movies.filter(
@@ -30,7 +31,7 @@ export default async function SearchPage({
           <p className="eyebrow">ХАЙЛТ</p>
           <h1 className="page-title">Хайх</h1>
         </div>
-        <SearchBox initialQuery={searchParams.q ?? ''} />
+        <SearchBox initialQuery={rawQ ?? ''} />
         {results.length ? (
           <div className="movie-grid" style={{ marginTop: 28 }}>
             {results.map((movie) => (

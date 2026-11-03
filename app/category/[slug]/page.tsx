@@ -5,15 +5,16 @@ import { GenreChips } from '@/components/GenreChips';
 import { getMovies, withPosters } from '@/lib/movies';
 import { getGenre } from '@/lib/genres';
 
-export default async function CategoryPage({ params }: { params: { slug: string } }) {
-  const slug = decodeURIComponent(params.slug).toLowerCase();
+export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug: rawSlug } = await params;
+  const slug = decodeURIComponent(rawSlug).toLowerCase();
   const movies = withPosters(await getMovies());
   const genre = getGenre(slug);
   // /category/<genre-slug> is the normal case; anything else falls back to the sheet's own category text.
   const categoryMovies = genre
     ? movies.filter((movie) => movie.genres.includes(genre.slug))
     : movies.filter((movie) => movie.category.toLowerCase() === slug);
-  const heading = genre?.mn ?? categoryMovies[0]?.category ?? decodeURIComponent(params.slug);
+  const heading = genre?.mn ?? categoryMovies[0]?.category ?? decodeURIComponent(rawSlug);
   const available = Array.from(new Set(movies.flatMap((movie) => movie.genres)));
 
   return (

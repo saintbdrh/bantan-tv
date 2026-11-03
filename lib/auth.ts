@@ -90,7 +90,7 @@ export function parseSessionToken(token: string | undefined): SessionUser | null
 }
 
 export async function getSession(): Promise<SessionUser | null> {
-  const jar = cookies();
+  const jar = await cookies();
   return parseSessionToken(jar.get(SESSION_COOKIE)?.value);
 }
 

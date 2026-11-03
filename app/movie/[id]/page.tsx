@@ -7,8 +7,9 @@ import { MovieDetailTrailer } from '@/components/MovieDetailTrailer';
 import { getMovieById } from '@/lib/movies';
 import { canOptimize } from '@/lib/images';
 
-export default async function MovieDetailPage({ params }: { params: { id: string } }) {
-  const movie = await getMovieById(params.id);
+export default async function MovieDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const movie = await getMovieById(id);
   if (!movie) notFound();
 
   const airTimes = movie.airTimes ?? [];

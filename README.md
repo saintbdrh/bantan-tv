@@ -21,10 +21,10 @@ The site runs on Cloudflare Workers through [OpenNext](https://opennext.js.org/c
 | Piece | Where it lives |
 |---|---|
 | Pages + API routes | Worker `bantan-tv` (`wrangler.jsonc`, entry `custom-worker.ts`) |
-| Page / Sheet cache (ISR, 5 min) | R2 bucket `bantan-tv-next-cache` + Durable Object queue (`open-next.config.ts`) |
+| Page / Sheet cache (5 min) | Sheet data and the R2 media index are cached for 5 minutes; movie pages render at request time so the Worker can read R2 |
 | Accounts + ad bookings | D1 database `bantan-tv-db` (`migrations/`) |
 | Poster resizing (`next/image`) | Cloudflare Images binding, cached at the edge for a day |
-| Trailers, R2-only movies | R2 bucket `bantan-data`, read through the `MEDIA_BUCKET` binding (`lib/r2.ts`); the `bantan-tv-video-api` Worker is the fallback during the build |
+| Movie catalog, posters, backdrops and trailers | R2 bucket `bantan-data`, read through the `MEDIA_BUCKET` binding (`lib/r2.ts`); movies are listed from `movies/<title>/` |
 
 Deploys run automatically from GitHub (Workers Builds): build command `npx opennextjs-cloudflare build`, deploy command `npx opennextjs-cloudflare deploy`. Manual deploy: `npm run deploy`.
 
@@ -38,8 +38,8 @@ Configured in `lib/epg.ts`:
 https://script.google.com/macros/s/AKfycbzkouzKciSgXM4HARmTD7kt24Rsq5eIBHzFSGdtyLJsOQqo_Y30Q8JGOhfuFFCIR0nOLg/exec?with_media=1
 ```
 
-- `?with_media=1` — weekly EPG + poster/backdrop/trailer per row  
-- `?media=all` — full Drive media catalog  
+- `?with_media=1` — weekly EPG and schedule data
+- `?media=all` — legacy Drive media catalog; the website's movie catalog and artwork come from R2
 
 See **[docs/MEDIA_FOLDER_GUIDE.md](docs/MEDIA_FOLDER_GUIDE.md)** for Drive folder layout.
 
@@ -75,7 +75,7 @@ Pages: Home, Кино, Цуврал, Нэвтрүүлэг, Хөтөлбөр, Ш�
 
 ## Performance & media (v2)
 
-- **Caching**: Apps Script responses are cached for 5 minutes (`EPG_REVALIDATE_SECONDS` in `lib/epg.ts`). Edits in the Sheet appear on the site within that time; pages are pre-rendered instead of waiting on Google for every visit.
+- **Caching**: Sheet responses and the R2 media index are cached for 5 minutes (`EPG_REVALIDATE_SECONDS` in `lib/epg.ts` and `lib/r2.ts`). Movie pages render at request time because the R2 binding is only available in the Worker runtime.
 - **Schedule time**: "Now on air" and the live highlight always use Ulaanbaatar time (UTC+8), also on servers running in UTC.
 - **Images**: posters and hero backdrops use `next/image` (resized to WebP, lazy-loaded) via the Cloudflare Images binding; each resized copy is cached at the edge for a day (`custom-worker.ts`). Allowed hosts live in `next.config.mjs` and `lib/images.ts`; unknown hosts are shown unoptimized rather than failing. Widths are limited (`deviceSizes`/`imageSizes`) to keep within the 5,000 free transformations a month.
 - **Trailers**: the hero waits for its image, then plays the trailer; it pauses when scrolled away or the tab is hidden, and is skipped for reduced-motion / data-saver users.

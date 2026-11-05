@@ -1,6 +1,6 @@
 # Bantan TV — Media folder structure guide
 
-This guide explains how to organize Google Drive so the Apps Script (`buildIndex` + EPG API) can attach **poster**, **backdrop**, and **trailer** to every title.
+The website's movie catalog, posters, backdrops, and trailers come from the Cloudflare R2 bucket `bantan-data`. The Google Drive layout below is for the legacy Apps Script media index; it is not used as the website's movie artwork source.
 
 ---
 
@@ -143,7 +143,7 @@ How to upload: Cloudflare dashboard → **R2 Object Storage** → **bantan-data*
 - **Poster**: an image with `POSTER` in its name (otherwise the first image that is not a wide one). **Background**: an image with `WIDE`, `BANNER`, `BACKDROP` or `BG` in its name. JPG, PNG or WebP, ideally under 1 MB.
 - **Trailer**: any `.mp4`; a file with `DUB` in its name is used first. **Make it web-size before uploading** — 720p H.264, about 10–30 MB. The free HandBrake app does this with the preset **"Fast 720p30"** and **"Web Optimized"** ticked. Full-quality cinema files are 5–10 times larger and use up the free 10 GB quickly.
 - The movie appears on the site within about 10 minutes. Its Mongolian title, description, age rating and IMDb score come from the movie info sheet, as for Drive movies.
-- If a movie has both a Drive folder and an R2 folder, the R2 poster/background replace the Drive ones and the R2 trailer is used first.
+- The website reads movie folders and their artwork from R2 only. Adding a Drive folder does not add a movie poster to the website.
 
 Trailers uploaded earlier to `bantan/` keep working. Web-size copies of them live in `web/` under the same file name, and the site uses the `web/` copy when there is one.
 

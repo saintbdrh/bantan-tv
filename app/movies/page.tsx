@@ -5,9 +5,6 @@ import { MovieRow } from '@/components/MovieRow';
 import { getMovies, withPosters } from '@/lib/movies';
 import { GENRES } from '@/lib/genres';
 
-// Regenerated in the background every 5 minutes (same as the sheet data).
-export const revalidate = 300;
-
 export default async function MoviesPage() {
   const movies = withPosters(await getMovies());
 

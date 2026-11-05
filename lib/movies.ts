@@ -1,9 +1,10 @@
+import { connection } from 'next/server';
 import { Movie } from '@/types';
 import { parseGenres } from '@/lib/genres';
 import { GENRE_OVERRIDES } from '@/lib/genre-overrides';
-import { fetchR2Media, R2MovieFolder } from '@/lib/r2';
+import { fetchR2Media } from '@/lib/r2';
 import { catalogDescription, catalogGenresFor, getCatalogEntry } from '@/lib/catalog';
-import { fetchEpgData, fetchAllMedia, fetchMovieInfo, fetchMovieLibrary, fetchSchedule } from '@/lib/epg-server';
+import { fetchEpgData, fetchMovieInfo, fetchMovieLibrary, fetchSchedule } from '@/lib/epg-server';
 import { normalizeTitle, isEmbedUrl, DAYS, EpgItem, MediaEntry } from '@/lib/epg';
 import { Airing, airingsFor, normalizeAgeRating } from '@/lib/schedule';
 import { titleKey } from '@/lib/titles';
@@ -22,33 +23,6 @@ function slugify(title: string): string {
 // simply fall back to the Drive/YouTube trailer.
 const MEDIA_BASE_URL = (process.env.MEDIA_BASE_URL || '').replace(/\/+$/, '');
 
-/**
- * Drive folders plus movies that only have a folder in R2 (movies/<Movie title>/).
- * When both exist for a title, the R2 poster and backdrop are used. A movie
- * with only a wide image in R2 uses it as its poster too.
- */
-export function mergeMedia(drive: MediaEntry[], r2Folders: R2MovieFolder[]): MediaEntry[] {
-  const merged = drive.slice();
-  const indexByKey = new Map(merged.map((entry, i) => [titleKey(entry.title), i]));
-  r2Folders.forEach((folder) => {
-    const key = titleKey(folder.title);
-    const i = indexByKey.get(key);
-    if (i === undefined) {
-      indexByKey.set(key, merged.length);
-      merged.push({
-        title: folder.title,
-        poster: folder.poster ?? folder.backdrop ?? null,
-        backdrop: folder.backdrop ?? null,
-        trailer: null,
-      });
-    } else {
-      const entry = merged[i];
-      merged[i] = { ...entry, poster: folder.poster ?? entry.poster, backdrop: folder.backdrop ?? entry.backdrop };
-    }
-  });
-  return merged;
-}
-
 /** "ГЭМТ ХЭРГИЙН ХОТ: ЗУГТАХ ЗАМГҮЙ" -> "Гэмт хэргийн хот: Зугтах замгүй"; other text unchanged. */
 function sentenceCase(text?: string): string | undefined {
   if (!text || /[a-zа-яөүё]/.test(text)) return text;
@@ -58,15 +32,22 @@ function sentenceCase(text?: string): string | undefined {
 }
 
 export async function getMovies(): Promise<Movie[]> {
-  const [epgData, schedule, driveMedia, r2, sheetRows, libraryRows] = await Promise.all([
+  // R2 bindings are only available while handling a Worker request, not during prerendering.
+  await connection();
+
+  const [epgData, schedule, r2, sheetRows, libraryRows] = await Promise.all([
     fetchEpgData(),
     fetchSchedule(),
-    fetchAllMedia(),
     fetchR2Media(),
     fetchMovieInfo(),
     fetchMovieLibrary(),
   ]);
-  const media = mergeMedia(driveMedia, r2.folders);
+  const media: MediaEntry[] = r2.folders.map((folder) => ({
+    title: folder.title,
+    poster: folder.poster ?? folder.backdrop ?? null,
+    backdrop: folder.backdrop ?? null,
+    trailer: folder.trailer ?? null,
+  }));
 
   // The TV's film list («Movie list монгол») and the website's movie info sheet,
   // matched by title (small typos in folder names are tolerated).
@@ -106,11 +87,8 @@ export async function getMovies(): Promise<Movie[]> {
     );
     const fromAiring = <K extends keyof Airing>(field: K): Airing[K] | undefined =>
       airings.find((airing) => airing[field])?.[field];
-    const poster = entry.poster || match?.image || '';
-    // Prefer original Drive trailer; fall back to sheet trailer URL
-    const driveTrailer = entry.trailer || undefined;
-    const sheetTrailer = match?.trailerUrl;
-    const trailerUrl = driveTrailer || sheetTrailer;
+    const poster = entry.poster || '';
+    const trailerUrl = entry.trailer || undefined;
     const youtubeId = match?.youtubeId;
 
     const id = slugify(entry.title);
@@ -153,7 +131,7 @@ export async function getMovies(): Promise<Movie[]> {
       category: match?.category || catalog?.genres?.split(',')[0]?.trim() || 'Кино',
       genres,
       poster,
-      backdrop: entry.backdrop || match?.backdropUrl || match?.image || poster,
+      backdrop: entry.backdrop || poster,
       trailerUrl,
       // R2 trailer first (web-size copy if there is one); MEDIA_BASE_URL only as a fallback.
       trailerVideoUrl:

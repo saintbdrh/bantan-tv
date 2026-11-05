@@ -159,7 +159,7 @@ export function movieFolders(keys: string[]): R2MovieFolder[] {
 }
 
 export type R2Media = {
-  /** Movies with their own folder in the bucket (movies/<Movie title>/). */
+  /** The movie catalog and artwork in movies/<Movie title>/. */
   folders: R2MovieFolder[];
   /** Best R2 trailer for a title: its movie folder, then web-size copies, then originals. */
   trailerFor(title: string): string | undefined;

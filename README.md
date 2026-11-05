@@ -28,8 +28,13 @@ See **[docs/MEDIA_FOLDER_GUIDE.md](docs/MEDIA_FOLDER_GUIDE.md)** for Drive folde
 
 Figma tokens: background `#050505`, accent `#FF2000`, brand stripes orange/yellow/cyan, container `1440px`.
 
-Pages: Home, Кино, Цуврал, Нэвтрүүлэг, Хөтөлбөр, Шууд, About, Advertise, Auth, Movie detail — all share Navbar, Footer, and the same dark UI system.
+Pages: Home, Кино, Цуврал, Нэвтрүүлэг, Хөтөлбөр, Шууд, Games, About, Advertise, Auth, Movie detail — all share Navbar, Footer, and the same dark UI system.
 
+## Games
+
+- Movie quiz rounds cover posters, synopses, genres, and release years, using the site catalog.
+- The daily challenge uses Ulaanbaatar time; streaks and best scores are saved in the current browser.
+- Shared results contain the score only, not the quiz answers.
 
 ## Auth & bookings
 

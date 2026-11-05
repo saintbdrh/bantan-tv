@@ -73,6 +73,7 @@ export async function getMovies(): Promise<Movie[]> {
         'Тун удахгүй дэлгэрэнгүй мэдээлэл нэмэгдэнэ.',
       category: match?.category || catalog?.genres?.split(',')[0]?.trim() || 'Кино',
       genres,
+      year: catalog?.year,
       poster,
       backdrop: entry.backdrop || match?.backdropUrl || match?.image || poster,
       trailerUrl,

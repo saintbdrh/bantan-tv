@@ -6,6 +6,8 @@ export type Movie = {
   category: string;
   /** Genre slugs (see lib/genres.ts), main genre first */
   genres: string[];
+  /** Release year from the curated movie catalog, when available */
+  year?: number;
   poster: string;
   backdrop: string;
   video?: string;

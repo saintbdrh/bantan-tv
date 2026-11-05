@@ -6,6 +6,9 @@ const OPTIMIZABLE_HOSTS = new Set([
   'drive.usercontent.google.com',
   'lh3.googleusercontent.com',
   'images.unsplash.com',
+  // R2 bucket bantan-data (movies/<title>/ posters): r2.dev address, planned custom domain
+  'pub-5686e553eadb4f46b85ab1672a0c865a.r2.dev',
+  'media.bantan.tv',
 ]);
 
 export function canOptimize(src?: string | null): boolean {

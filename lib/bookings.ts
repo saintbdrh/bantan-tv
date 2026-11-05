@@ -1,6 +1,5 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { randomBytes } from 'crypto';
+import { getDb } from '@/lib/db';
 
 export type BookingPayload = {
   advertiserName: string;
@@ -25,25 +24,47 @@ export type BookingRecord = BookingPayload & {
   forwardError?: string;
 };
 
-const BOOKINGS_FILE = path.join(process.cwd(), 'data', 'bookings.json');
-
-async function ensureFile() {
-  try {
-    await fs.access(BOOKINGS_FILE);
-  } catch {
-    await fs.mkdir(path.dirname(BOOKINGS_FILE), { recursive: true });
-    await fs.writeFile(BOOKINGS_FILE, '[]', 'utf8');
-  }
-}
-
+/**
+ * Stores the booking in D1 first (so it is never lost), then forwards it to
+ * BOOKING_WEBHOOK_URL when set and records whether that worked.
+ */
 export async function saveBooking(payload: BookingPayload): Promise<BookingRecord> {
-  await ensureFile();
   const record: BookingRecord = {
     ...payload,
     id: randomBytes(10).toString('hex'),
     createdAt: new Date().toISOString(),
     status: 'pending'
   };
+
+  const db = await getDb();
+  await db
+    .prepare(
+      `INSERT INTO bookings (
+        id, created_at, status, forward_error,
+        advertiser_name, advertiser_phone, advertiser_email, company,
+        slot_id, slot_start, slot_end, pricing_type, days, times,
+        total_price, tvc_file_name, note
+      ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      record.id,
+      record.createdAt,
+      record.status,
+      record.advertiserName,
+      record.advertiserPhone,
+      record.advertiserEmail,
+      record.company ?? null,
+      record.slotId,
+      record.slotStart,
+      record.slotEnd,
+      record.pricingType,
+      JSON.stringify(record.days),
+      JSON.stringify(record.times),
+      record.totalPrice,
+      record.tvcFileName ?? null,
+      record.note ?? null
+    )
+    .run();
 
   const webhook = process.env.BOOKING_WEBHOOK_URL;
   if (webhook) {
@@ -63,17 +84,16 @@ export async function saveBooking(payload: BookingPayload): Promise<BookingRecor
       record.status = 'error';
       record.forwardError = err instanceof Error ? err.message : String(err);
     }
+
+    try {
+      await db
+        .prepare('UPDATE bookings SET status = ?, forward_error = ? WHERE id = ?')
+        .bind(record.status, record.forwardError ?? null, record.id)
+        .run();
+    } catch (err) {
+      console.error('Could not record webhook status for booking', record.id, err);
+    }
   }
 
-  const raw = await fs.readFile(BOOKINGS_FILE, 'utf8');
-  let list: BookingRecord[] = [];
-  try {
-    list = JSON.parse(raw);
-    if (!Array.isArray(list)) list = [];
-  } catch {
-    list = [];
-  }
-  list.push(record);
-  await fs.writeFile(BOOKINGS_FILE, JSON.stringify(list, null, 2), 'utf8');
   return record;
 }

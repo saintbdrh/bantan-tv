@@ -5,20 +5,22 @@ import type { Movie } from '@/types';
 import { TrailerVideo } from '@/components/TrailerVideo';
 import { pickVideo, TRAILER_SKIP_SECONDS } from '@/lib/trailer';
 import { isEmbedUrl } from '@/lib/epg';
-import { useSound } from '@/lib/sound';
+import { useSoundOn } from '@/lib/sound';
 
-function youtubeEmbed(url?: string | null, id?: string | null): string | null {
-  if (id) return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&start=${TRAILER_SKIP_SECONDS}&rel=0&playsinline=1`;
+function youtubeEmbed(url: string | null | undefined, id: string | null | undefined, muted: boolean): string | null {
+  const embed = (yid: string) =>
+    `https://www.youtube.com/embed/${yid}?autoplay=1&mute=${muted ? 1 : 0}&start=${TRAILER_SKIP_SECONDS}&rel=0&playsinline=1`;
+  if (id) return embed(id);
   if (!url) return null;
   try {
     if (url.includes('youtu.be/')) {
       const yid = url.split('youtu.be/')[1]?.split(/[?&#]/)[0];
-      if (yid) return `https://www.youtube.com/embed/${yid}?autoplay=1&mute=1&start=${TRAILER_SKIP_SECONDS}&rel=0&playsinline=1`;
+      if (yid) return embed(yid);
     }
     if (url.includes('youtube.com')) {
       const u = new URL(url);
       const yid = u.searchParams.get('v');
-      if (yid) return `https://www.youtube.com/embed/${yid}?autoplay=1&mute=1&start=${TRAILER_SKIP_SECONDS}&rel=0&playsinline=1`;
+      if (yid) return embed(yid);
     }
   } catch { /* ignore */ }
   return null;
@@ -26,15 +28,16 @@ function youtubeEmbed(url?: string | null, id?: string | null): string | null {
 
 export function MovieDetailTrailer({ movie }: { movie: Movie }) {
   const [failed, setFailed] = useState<Record<string, boolean>>({});
-  const [soundOn, setSound] = useSound();
-  const muted = !soundOn;
+  // A YouTube trailer starts muted until the page may play sound, then reloads
+  // with sound (see lib/sound.ts).
+  const muted = !useSoundOn();
 
   const onFailed = useCallback((kind: string) => {
     setFailed((f) => ({ ...f, [`${movie.id}:${kind}`]: true }));
   }, [movie.id]);
 
   const video = pickVideo(movie, failed);
-  const yt = !video ? youtubeEmbed(movie.trailerUrl, movie.youtubeId) : null;
+  const yt = !video ? youtubeEmbed(movie.trailerUrl, movie.youtubeId, muted) : null;
   const embed =
     !video && !yt && movie.trailerUrl && isEmbedUrl(movie.trailerUrl)
       ? movie.trailerUrl
@@ -53,12 +56,12 @@ export function MovieDetailTrailer({ movie }: { movie: Movie }) {
             src={video.src}
             startAt={video.startAt}
             poster={movie.backdrop || movie.poster}
-            muted={muted}
             play
             onFail={() => onFailed(video.kind)}
           />
         ) : (
           <iframe
+            key={yt ? (muted ? 'muted' : 'sound') : 'embed'}
             src={yt || embed || ''}
             title={`${movie.title} trailer`}
             allow="autoplay; encrypted-media; picture-in-picture"
@@ -67,16 +70,6 @@ export function MovieDetailTrailer({ movie }: { movie: Movie }) {
           />
         )}
       </div>
-      {video && (
-        <button
-          type="button"
-          className="detail-mute-btn"
-          onClick={() => setSound(muted)}
-          aria-label={muted ? 'Дуу оруулах' : 'Дуу хаах'}
-        >
-          {muted ? 'Дуугүй' : 'Дуутай'}
-        </button>
-      )}
     </div>
   );
 }

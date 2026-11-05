@@ -8,7 +8,8 @@ import { isEmbedUrl } from '@/lib/epg';
 import { canOptimize } from '@/lib/images';
 import { pickVideo } from '@/lib/trailer';
 import { TrailerVideo } from '@/components/TrailerVideo';
-import { useSound } from '@/lib/sound';
+import { MovieMeta } from '@/components/MovieMeta';
+import { useSoundOn } from '@/lib/sound';
 
 function trailerEmbedUrl(movie: Movie, muted: boolean): string | null {
   const muteParam = muted ? 1 : 0;
@@ -55,8 +56,9 @@ const SWIPE_MIN_PX = 50;
 export function Hero({ movies }: { movies: Movie[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [soundOn, setSound] = useSound();
-  const muted = !soundOn;
+  // YouTube/Drive embeds cannot be told to "try sound first", so they start
+  // muted and reload with sound once the page has sound (see lib/sound.ts).
+  const muted = !useSoundOn();
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [trailerReady, setTrailerReady] = useState(false);
   const [inView, setInView] = useState(true);
@@ -134,7 +136,6 @@ export function Hero({ movies }: { movies: Movie[] }) {
     currentMovie && trailersAllowed && !video
       ? trailerEmbedUrl(currentMovie, muted)
       : null;
-  const hasTrailer = trailersAllowed && !!(video || embed);
   const videoKey = video ? `${currentMovie.id}:${video.kind}` : null;
 
   // Slides without a video advance on a timer. While a video is the slide, its end moves us on.
@@ -152,8 +153,6 @@ export function Hero({ movies }: { movies: Movie[] }) {
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       go(1);
-    } else if (e.key === 'm' || e.key === 'M') {
-      setSound(muted);
     }
   };
 
@@ -233,7 +232,6 @@ export function Hero({ movies }: { movies: Movie[] }) {
           src={video.src}
           startAt={video.startAt}
           poster={bgSrc}
-          muted={muted}
           play={shouldPlay}
           stallMs={6000}
           className={`hero-video${playingId === currentMovie.id ? ' is-playing' : ''}`}
@@ -247,25 +245,12 @@ export function Hero({ movies }: { movies: Movie[] }) {
         <div className="hero-copy" aria-live="polite" aria-atomic="true">
           <p className="hero-eyebrow">BANTAN TV</p>
           <h1 className="hero-title">{currentMovie.title}</h1>
+          <MovieMeta movie={currentMovie} className="hero-movie-meta" />
           {currentMovie.description && <p className="hero-desc">{currentMovie.description}</p>}
           <div className="hero-actions">
             <Link href={`/movie/${currentMovie.id}`} className="btn-outline">
               ДЭЛГЭРЭНГҮЙ
             </Link>
-            <Link href="/live" className="btn-primary">
-              ШУУД ҮЗЭХ
-            </Link>
-            {hasTrailer && (
-              <button
-                type="button"
-                className="icon-button hero-mute-btn"
-                aria-label={muted ? 'Дуу нээх' : 'Дуу хаах'}
-                aria-pressed={!muted}
-                onClick={() => setSound(muted)}
-              >
-                {muted ? '🔇' : '🔊'}
-              </button>
-            )}
           </div>
         </div>
 

@@ -3,6 +3,9 @@ import { HomeBack } from '@/components/HomeBack';
 import { MovieCard } from '@/components/MovieCard';
 import { getMovies, withPosters } from '@/lib/movies';
 
+// Regenerated in the background every 5 minutes (same as the sheet data).
+export const revalidate = 300;
+
 export default async function ShowsPage() {
   const movies = withPosters(await getMovies());
   const shows = movies.filter(

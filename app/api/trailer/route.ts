@@ -7,8 +7,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ youtubeId: null });
   }
 
-  const youtubeId = (await searchWithApi(title)) ?? (await searchWithoutApi(title));
-  return NextResponse.json({ youtubeId });
+  try {
+    const youtubeId = (await searchWithApi(title)) ?? (await searchWithoutApi(title));
+    return NextResponse.json({ youtubeId });
+  } catch {
+    // YouTube unreachable: the schedule falls back to its search embed.
+    return NextResponse.json({ youtubeId: null });
+  }
 }
 
 async function searchWithApi(title: string): Promise<string | null> {
@@ -34,8 +39,9 @@ async function searchWithApi(title: string): Promise<string | null> {
     return null;
   }
 
-  const payload = await response.json();
-  return typeof payload.items?.[0]?.id?.videoId === 'string' ? payload.items[0].id.videoId : null;
+  const payload = (await response.json()) as { items?: Array<{ id?: { videoId?: unknown } }> };
+  const videoId = payload.items?.[0]?.id?.videoId;
+  return typeof videoId === 'string' ? videoId : null;
 }
 
 async function searchWithoutApi(title: string): Promise<string | null> {

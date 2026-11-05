@@ -163,7 +163,7 @@ export function BantanEpg(props: BantanEpgProps) {
       try {
         const response = await fetch(`/api/trailer?title=${encodeURIComponent(selectedShow.title)}`);
         if (!response.ok) return;
-        const payload = await response.json();
+        const payload = (await response.json()) as { youtubeId?: unknown };
         if (active && typeof payload.youtubeId === 'string' && payload.youtubeId) {
           trailerCache.set(selectedShow.title, payload.youtubeId);
           setResolvedYoutubeId(payload.youtubeId);

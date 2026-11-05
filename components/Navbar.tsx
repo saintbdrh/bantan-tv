@@ -7,9 +7,7 @@ import { useRouter } from 'next/navigation';
 const navItems = [
   { label: 'Нүүр', href: '/' },
   { label: 'Кино сан', href: '/movies' },
-  { label: 'Тоглоом', href: '/games' },
   { label: 'Хөтөлбөр', href: '/schedule' },
-  { label: 'Санал', href: '/sanal' },
   { label: 'Бидний тухай', href: '/about' }
 ];
 
@@ -122,15 +120,6 @@ export function Navbar() {
           <Link href="/login" className="ghost-button hidden-mobile">
             НЭВТРЭХ
           </Link>
-          <Link href="/live" className="live-button hidden-mobile">
-            <span className="live-dot-red" aria-hidden="true" />
-            ШУУД
-          </Link>
-          {/* Mobile: primary live always visible */}
-          <Link href="/live" className="live-button mobile-only" aria-label="Шууд үзэх">
-            <span className="live-dot-red" aria-hidden="true" />
-            ШУУД
-          </Link>
           <button
             ref={menuBtnRef}
             type="button"
@@ -186,17 +175,6 @@ export function Navbar() {
               <li>
                 <Link href="/search" onClick={() => setMobileOpen(false)}>
                   Хайх
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/live"
-                  className="live-button"
-                  style={{ width: '100%', marginTop: 8 }}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span className="live-dot-red" aria-hidden="true" />
-                  ШУУД ҮЗЭХ
                 </Link>
               </li>
             </ul>

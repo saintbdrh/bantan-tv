@@ -122,6 +122,33 @@ Folder names should match the EPG titles as closely as possible (same words, ord
 
 ---
 
+## Adding a movie without Google Drive (Cloudflare R2)
+
+Drive is not required: a movie can live entirely in the Cloudflare R2 bucket **`bantan-data`**, which is free up to 10 GB. Use the same layout as in Drive, inside a folder called **`movies`**:
+
+```
+bantan-data/
+└── movies/
+    └── <Movie Title>/
+        ├── Poster/
+        │   ├── MovieName_POSTER.jpg   → card image (vertical)
+        │   └── MovieName_WIDE.jpg     → home page / movie page background
+        └── Trailer/
+            └── MovieName_TRL.mp4      → web-size trailer (see below)
+```
+
+How to upload: Cloudflare dashboard → **R2 Object Storage** → **bantan-data** → open the `movies` folder → add a folder named after the movie and upload its files into it (or drag the whole movie folder in). Subfolders are optional; the site looks at every file inside the movie's folder.
+
+- **Folder name** = the movie's title as it is written in the weekly schedule (the English title in brackets) or in the movie info sheet. Case and punctuation do not matter.
+- **Poster**: an image with `POSTER` in its name (otherwise the first image that is not a wide one). **Background**: an image with `WIDE`, `BANNER`, `BACKDROP` or `BG` in its name. JPG, PNG or WebP, ideally under 1 MB.
+- **Trailer**: any `.mp4`; a file with `DUB` in its name is used first. **Make it web-size before uploading** — 720p H.264, about 10–30 MB. The free HandBrake app does this with the preset **"Fast 720p30"** and **"Web Optimized"** ticked. Full-quality cinema files are 5–10 times larger and use up the free 10 GB quickly.
+- The movie appears on the site within about 10 minutes. Its Mongolian title, description, age rating and IMDb score come from the movie info sheet, as for Drive movies.
+- If a movie has both a Drive folder and an R2 folder, the R2 poster/background replace the Drive ones and the R2 trailer is used first.
+
+Trailers uploaded earlier to `bantan/` keep working. Web-size copies of them live in `web/` under the same file name, and the site uses the `web/` copy when there is one.
+
+---
+
 ## API endpoints (reference)
 
 | URL | Returns |

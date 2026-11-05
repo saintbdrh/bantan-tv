@@ -212,7 +212,7 @@ function getTrailerUrl(value: unknown): string | undefined {
   }
 }
 
-function getDayKeyFromValue(value: unknown): DayKey | null {
+export function getDayKeyFromValue(value: unknown): DayKey | null {
   if (typeof value === 'string') {
     const cleaned = value.trim();
     const mapped = DAY_ALIASES[cleaned] ?? DAY_ALIASES[cleaned.toLowerCase()];
@@ -406,28 +406,6 @@ const DAY_ALIASES: Record<string, DayKey> = {
   sunday: 'Ням', sun: 'Ням', ням: 'Ням',
 };
 
-// Server-side fetch (used by lib/movies.ts and any server component that
-// needs the schedule). Always returns a full week, falling back to the
-// bundled placeholder schedule if the sheet is unreachable.
-export async function fetchEpgData(): Promise<Record<DayKey, EpgItem[]>> {
-  try {
-    const response = await fetch(EPG_ENDPOINT, {
-      next: { revalidate: EPG_REVALIDATE_SECONDS },
-      headers: { Accept: 'application/json, text/plain, */*' },
-    });
-
-    if (!response.ok) {
-      throw new Error(`EPG fetch failed with status ${response.status}`);
-    }
-
-    const payload = await response.text();
-    return normalizeEpgPayload(JSON.parse(payload));
-  } catch (error) {
-    console.warn('Google EPG endpoint unavailable; using fallback schedule.', error);
-    return FALLBACK_EPG;
-  }
-}
-
 // Matches the Apps Script `norm()` helper so Drive folder names and EPG
 // Title cells resolve the same way (case, punctuation, "&" vs "and").
 export function normalizeTitle(title: string): string {
@@ -439,24 +417,6 @@ export function normalizeTitle(title: string): string {
     .replace(/\s+/g, ' ');
 }
 
-export type AirTime = { day: DayKey; start: string; end: string };
-
-// Every scheduled slot across the week for a given title, in day order.
-export function getAirTimesForTitle(epgData: Record<DayKey, EpgItem[]>, title: string): AirTime[] {
-  const target = normalizeTitle(title);
-  const results: AirTime[] = [];
-
-  DAYS.forEach((day) => {
-    (epgData[day] ?? []).forEach((item) => {
-      if (normalizeTitle(item.title) === target) {
-        results.push({ day, start: item.start, end: item.end });
-      }
-    });
-  });
-
-  return results;
-}
-
 // ====== Real movie/media list (Drive, via the same Apps Script) ======
 
 export type MediaEntry = {
@@ -465,34 +425,3 @@ export type MediaEntry = {
   backdrop: string | null;
   trailer: string | null;
 };
-
-// The deployment serves poster/backdrop/trailer for every movie folder in
-// Drive at ?media=all (see Code.gs -> mediaResponse). EPG_ENDPOINT already
-// carries ?with_media=1, so swap the query rather than appending to it.
-function getMediaListUrl(): string {
-  return `${EPG_ENDPOINT.split('?')[0]}?media=all`;
-}
-
-// This is the real movie catalog: whatever folders actually exist in your
-// Drive "Bantan web" folder, not a hand-written list. Returns [] (rather
-// than made-up placeholder movies) if the sheet/script is unreachable.
-export async function fetchAllMedia(): Promise<MediaEntry[]> {
-  try {
-    const response = await fetch(getMediaListUrl(), {
-      next: { revalidate: EPG_REVALIDATE_SECONDS },
-      headers: { Accept: 'application/json, text/plain, */*' },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Media list fetch failed with status ${response.status}`);
-    }
-
-    const payload = await response.json();
-    return Array.isArray(payload)
-      ? payload.filter((item): item is MediaEntry => !!item && typeof item.title === 'string' && item.title.trim().length > 0)
-      : [];
-  } catch (error) {
-    console.warn('Drive media list unavailable.', error);
-    return [];
-  }
-}

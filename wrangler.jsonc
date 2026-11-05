@@ -1,30 +1,88 @@
+/**
+ * Cloudflare Workers config for Bantan TV (Next.js via @opennextjs/cloudflare).
+ * Docs: https://opennext.js.org/cloudflare
+ *
+ * Before the first deploy (see docs/CLOUDFLARE_MIGRATION.md):
+ *   1. npx wrangler r2 bucket create bantan-tv-next-cache
+ *   2. npx wrangler d1 create bantan-tv-db   -> paste the id into database_id below
+ *   3. npm run db:migrate:remote
+ *   4. npx wrangler secret put AUTH_SECRET    (and the other secrets)
+ */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "main": ".open-next/worker.js",
   "name": "bantan-tv",
-  "compatibility_date": "2026-11-01",
-  "compatibility_flags": [
-    "global_fetch_strictly_public"
-  ],
+  // custom-worker.ts wraps the generated .open-next/worker.js and adds edge
+  // caching for optimized images (/_next/image).
+  "main": "custom-worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+
+  // Static files (JS/CSS chunks, /public). Requests to static assets are free.
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+
+  // Required by OpenNext for ISR revalidation.
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
       "service": "bantan-tv"
     }
   ],
+
+  // Next.js page/fetch cache (ISR): pages and the Google Sheet responses are
+  // cached here and refreshed every 5 minutes, like on Vercel.
   "r2_buckets": [
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
-      "bucket_name": "bantan-tv-opennext-cache"
+      "bucket_name": "bantan-tv-next-cache"
+    },
+    // Trailers, posters and backdrops (public through its r2.dev address or
+    // R2_PUBLIC_URL). The site lists it to find each movie's files: lib/r2.ts.
+    {
+      "binding": "MEDIA_BUCKET",
+      "bucket_name": "bantan-data"
     }
   ],
+
+  // Accounts (sign-up / login) and ad bookings. Replaces data/*.json, which
+  // cannot be written on Vercel or Workers.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "bantan-tv-db",
+      "database_id": "84388451-df06-4aaa-8810-0d037df89423",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Background revalidation queue used by OpenNext (time-based ISR).
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NEXT_CACHE_DO_QUEUE",
+        "class_name": "DOQueueHandler"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DOQueueHandler"]
+    }
+  ],
+
+  // next/image -> Cloudflare Images (5,000 unique transformations/month free).
   "images": {
     "binding": "IMAGES"
   },
+
+  // Settings live in the Cloudflare dashboard (Worker -> Settings -> Variables
+  // and Secrets) so they can be changed without a code change. keep_vars stops
+  // a deploy from wiping the plain-text ones. See .env.example for the list.
+  "keep_vars": true,
+
   "observability": {
     "enabled": true
   }

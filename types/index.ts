@@ -1,7 +1,16 @@
+import type { Airing } from '@/lib/schedule';
+
 export type Movie = {
   id: string;
   title: string;
+  /** Mongolian title (movie info sheet, or the weekly schedule) */
+  localTitle?: string;
   description: string;
+  /** As the channel shows it, e.g. "+12" */
+  ageRating?: string;
+  /** IMDb score, e.g. 7.4 */
+  imdb?: number;
+  year?: number;
   /** Raw type/category from the sheet (Кино, Цуврал, Шоу ...) */
   category: string;
   /** Genre slugs (see lib/genres.ts), main genre first */
@@ -17,5 +26,6 @@ export type Movie = {
   trailerVideoUrl?: string;
   /** YouTube video id fallback when no Drive trailer */
   youtubeId?: string;
-  airTimes?: { day: string; start: string; end: string }[];
+  /** This week's broadcasts on BANTAN TV, in order */
+  airings?: Airing[];
 };

@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
-/** Vercel hobby ~10s; keep response streaming so the client can start playback early. */
-export const maxDuration = 60;
 
 /**
  * Proxies a public Google Drive file with Range support for <video> seeking.
  * File must be "Anyone with the link".
  *
- * Note: On Vercel, very large trailers may time out. Prefer short trailers
- * or host mp4s on Vercel Blob / R2 (MEDIA_BASE_URL).
+ * Fallback only: titles with a trailer in R2 never come through here. On
+ * Cloudflare Workers the streamed bytes are not billed as bandwidth, but
+ * uploading the trailer to R2 is still faster for viewers than this proxy.
  */
 export async function GET(request: NextRequest) {
   const id = request.nextUrl.searchParams.get('id')?.trim();

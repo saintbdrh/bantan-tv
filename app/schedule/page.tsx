@@ -2,6 +2,9 @@ import { SiteShell } from '@/components/SiteShell';
 import { HomeBack } from '@/components/HomeBack';
 import { EpgSection } from '@/components/EpgSection';
 
+// Regenerated in the background every 5 minutes (same as the sheet data).
+export const revalidate = 300;
+
 export default function SchedulePage() {
   return (
     <SiteShell>

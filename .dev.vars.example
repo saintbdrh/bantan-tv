@@ -1,0 +1,9 @@
+# Copy to .dev.vars for `npm run preview` (never commit .dev.vars).
+# These values are only used by the local Workers preview and are never deployed.
+
+# Makes the preview read .env.development / .env.local like `next dev` does.
+NEXTJS_ENV=development
+
+# Needed for sign-up/login in the preview, which runs a production build.
+# Paste the output of: openssl rand -hex 32
+AUTH_SECRET=

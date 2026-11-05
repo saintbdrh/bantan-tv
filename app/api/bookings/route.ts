@@ -20,7 +20,8 @@ export async function POST(req: NextRequest) {
   const advertiserEmail = String(body.advertiserEmail ?? session.email).trim();
   const days = Array.isArray(body.days) ? body.days.map(String) : [];
   const pricingType = body.pricingType === 'peak' ? 'peak' : 'free';
-  const totalPrice = Number(body.totalPrice) || 0;
+  const price = Number(body.totalPrice);
+  const totalPrice = Number.isFinite(price) ? price : 0;
 
   if (!advertiserName || !advertiserPhone || !advertiserEmail) {
     return NextResponse.json(

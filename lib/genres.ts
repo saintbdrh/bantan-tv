@@ -13,10 +13,10 @@ export type Genre = {
 export const GENRES: Genre[] = [
   { slug: 'adventure', mn: 'Адал явдал', en: 'Adventure', aliases: ['adventure', 'action', 'экшн', 'адал явдал', 'адал явдалт', 'адал явдалтай', 'үйл явдал', 'тулаант', 'тулааны'] },
   { slug: 'comedy', mn: 'Инээдмийн', en: 'Comedy', aliases: ['comedy', 'инээдмийн', 'инээдэм', 'комеди'] },
-  { slug: 'drama', mn: 'Драма', en: 'Drama', aliases: ['drama', 'драма', 'жүжиг'] },
+  { slug: 'drama', mn: 'Драма', en: 'Drama', aliases: ['drama', 'драма', 'драм', 'жүжиг'] },
   { slug: 'romance', mn: 'Романтик', en: 'Romance', aliases: ['romance', 'romantic', 'романтик', 'хайр дурлал', 'дурлалын', 'мелодрам'] },
   { slug: 'horror', mn: 'Аймшгийн', en: 'Horror', aliases: ['horror', 'аймшгийн', 'аймшиг', 'хорор'] },
-  { slug: 'thriller', mn: 'Триллер', en: 'Thriller', aliases: ['thriller', 'триллер', 'сэтгэл түгшээх'] },
+  { slug: 'thriller', mn: 'Триллер', en: 'Thriller', aliases: ['thriller', 'триллер', 'сэтгэл түгшээх', 'survival', 'түгшүүрт'] },
   { slug: 'mystery', mn: 'Нууцлаг', en: 'Mystery', aliases: ['mystery', 'detective', 'нууцлаг', 'детектив'] },
   { slug: 'crime', mn: 'Гэмт хэргийн', en: 'Crime', aliases: ['crime', 'гэмт хэргийн', 'гэмт хэрэг', 'криминал'] },
   { slug: 'sci-fi', mn: 'Шинжлэх ухааны зөгнөлт', en: 'Sci-Fi', aliases: ['sci-fi', 'sci fi', 'scifi', 'science fiction', 'шинжлэх ухааны зөгнөлт', 'шинжлэх ухааны уран зөгнөлт', 'сай фай'] },
@@ -40,7 +40,10 @@ function clean(value: string): string {
   return ` ${value.toLowerCase().replace(/[^a-z0-9\u0400-\u04ff]+/g, ' ').trim()} `;
 }
 
-/** Maps a raw sheet value like "Horror, Thriller" or "Аймшгийн / Триллер" to genre slugs (max 3). */
+/**
+ * Maps a raw sheet value like "Horror, Thriller" or "тулаант, драм, триллер"
+ * to genre slugs (max 3), in the order the sheet lists them.
+ */
 export function parseGenres(raw?: string | null): string[] {
   if (!raw) return [];
   const found: string[] = [];
@@ -48,9 +51,11 @@ export function parseGenres(raw?: string | null): string[] {
     .split(/[,;/|]+/)
     .map(clean)
     .forEach((token) => {
-      GENRES.forEach((genre) => {
-        if (found.includes(genre.slug)) return;
-        if (genre.aliases.some((alias) => token.includes(clean(alias)))) found.push(genre.slug);
+      let matched = GENRES.filter((genre) => genre.aliases.some((alias) => token.includes(clean(alias))));
+      // "шинжлэх ухааны уран зөгнөлт" (sci-fi) also contains "уран зөгнөлт" (fantasy)
+      if (matched.some((genre) => genre.slug === 'sci-fi')) matched = matched.filter((genre) => genre.slug !== 'fantasy');
+      matched.forEach((genre) => {
+        if (!found.includes(genre.slug)) found.push(genre.slug);
       });
     });
   return found.slice(0, 3);

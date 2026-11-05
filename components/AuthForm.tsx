@@ -64,7 +64,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           password: form.password
         })
       });
-      const data = await res.json();
+      const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setErrors({ form: data.error || 'Алдаа гарлаа.' });
         setLoading(false);

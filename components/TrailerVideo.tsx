@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { playTrailer, useSoundOn } from '@/lib/sound';
 
+// Trailers play with sound whenever the browser allows it (see lib/sound.ts).
 type Props = {
   src: string;
   /** Seconds to skip (Drive intro). Video stays hidden until this point is reached. */
   startAt?: number;
   poster?: string;
-  muted?: boolean;
   controls?: boolean;
   loop?: boolean;
   play?: boolean;
@@ -24,7 +25,6 @@ export function TrailerVideo({
   src,
   startAt = 0,
   poster,
-  muted = true,
   controls = false,
   loop = false,
   play,
@@ -43,6 +43,7 @@ export function TrailerVideo({
   onPlayingRef.current = onPlaying;
   const [ready, setReady] = useState(false);
   const announced = useRef(false);
+  const muted = !useSoundOn();
 
   useEffect(() => {
     setReady(false);
@@ -50,7 +51,7 @@ export function TrailerVideo({
   }, [src, startAt]);
 
   useEffect(() => {
-    if (ref.current) ref.current.muted = muted;
+    if (ref.current && !muted) ref.current.muted = false;
   }, [muted]);
 
   useEffect(() => {
@@ -96,7 +97,7 @@ export function TrailerVideo({
     const onSeeked = () => {
       if (startAt <= 0 || video.currentTime >= startAt - 0.25) {
         markReady();
-        if (play) video.play().catch(() => {});
+        if (play) playTrailer(video);
       }
     };
 
@@ -136,7 +137,7 @@ export function TrailerVideo({
           /* ignore */
         }
       }
-      video.play().catch(() => {});
+      playTrailer(video);
     } else {
       video.pause();
     }
@@ -166,7 +167,7 @@ export function TrailerVideo({
       onEnded={(e) => {
         if (loop) {
           e.currentTarget.currentTime = startAt;
-          e.currentTarget.play().catch(() => {});
+          playTrailer(e.currentTarget);
         } else {
           onEnded?.();
         }

@@ -8,15 +8,17 @@ import { displayCategory } from '@/lib/genres';
 export default async function SearchPage({
   searchParams
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string | string[] }>;
 }) {
-  const { q: rawQ } = await searchParams;
-  const q = (rawQ ?? '').trim().toLowerCase();
+  const { q: raw } = await searchParams;
+  const rawQuery = (Array.isArray(raw) ? raw[0] : raw) ?? '';
+  const q = rawQuery.trim().toLowerCase();
   const movies = withPosters(await getMovies());
   const results = q
     ? movies.filter(
         (m) =>
           m.title.toLowerCase().includes(q) ||
+          (m.localTitle ?? '').toLowerCase().includes(q) ||
           m.category.toLowerCase().includes(q) ||
           displayCategory(m).toLowerCase().includes(q) ||
           m.description.toLowerCase().includes(q)
@@ -31,7 +33,7 @@ export default async function SearchPage({
           <p className="eyebrow">ХАЙЛТ</p>
           <h1 className="page-title">Хайх</h1>
         </div>
-        <SearchBox initialQuery={rawQ ?? ''} />
+        <SearchBox initialQuery={rawQuery} />
         {results.length ? (
           <div className="movie-grid" style={{ marginTop: 28 }}>
             {results.map((movie) => (

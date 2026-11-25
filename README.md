@@ -60,6 +60,17 @@ Genre names are mapped in `lib/genres.ts` (the channel's spellings, e.g. «ту�
 
 ## Design
 
+### Community features
+
+- `/games`: Bantan Blocks (Tetris), keyboard and touch controls, pause/resume, guest practice, account best scores and a top-ten leaderboard. D1 stores runs; the server recalculates scores from a deterministic replay rather than accepting a submitted score. This is a casual leaderboard, not a prize or tournament anti-cheat system.
+- `/trees`: create one public Christmas tree per account, share `/trees/<id>`, and leave ornaments and public wishes on any tree. Each tree has 25 positions including one exclusive star; each account can place at most five ornaments per tree. Authors can remove their own ornaments; the tree owner can remove any ornament. Names and wishes are public; account email addresses are not returned by the tree or leaderboard APIs.
+- `/account`: signed-in account links and logout. Email/password signup and login use D1, password hashing and signed httpOnly cookies. New passwords require 8–128 characters; existing accounts can still log in. Auth APIs have bounded inputs, origin checks and D1-backed rate limits. Resend sends a six-digit email verification code during signup only. Login never sends emails; incomplete signups return to the signup flow with their original email and password. Codes expire in ten minutes, are stored as keyed hashes, allow five guesses and are single-use. Resending waits sixty seconds and invalidates the previous code. Existing session cookies do not grant access for unverified addresses. Password recovery uses Resend reset links. SMS delivery is not connected.
+- Partner logo marquee below the collaboration banner: add approved logo files to `public/partners/` and entries to `lib/partners.ts`. Until supplied, the UI explicitly labels the logo slots as placeholders. Motion pauses on hover/focus and is disabled for reduced-motion preferences.
+
+Apply the D1 migrations (including `0002_community.sql`, `0003_email_verification.sql`, and `0004_password_reset.sql`) locally with `npm run db:migrate:local`. Before deploying these changes, apply it to production with `npm run db:migrate:remote` and ensure the Worker has a strong `AUTH_SECRET` secret. No new Cloudflare services are required; community data uses the existing D1 binding. `.dev.vars` is ignored by Git and is only for local secrets.
+
+Validation: `npm test` runs the deterministic game/scoring tests (Node 22.18+). With the local server running, `npm run test:integration` checks auth, score persistence, public tree data, ownership, quotas and concurrent star claims against **local D1 only**. It inserts clearly named, verified local QA fixtures for community tests; it does not send emails. Set `BANTAN_TEST_URL=http://127.0.0.1:8787` to exercise a local Wrangler preview instead; non-local hosts are rejected by the test script.
+
 Figma tokens: background `#050505`, accent `#FF2000`, brand stripes orange/yellow/cyan, container `1440px`.
 
 Pages: Home, Кино, Цуврал, Нэвтрүүлэг, Хөтөлбөр, Шууд, About, Advertise, Auth, Movie detail — all share Navbar, Footer, and the same dark UI system.
@@ -93,3 +104,26 @@ Pages: Home, Кино, Цуврал, Нэвтрүүлэг, Хөтөлбөр, Ш�
   Own-hosted files (`MEDIA_BASE_URL`) are never skipped, so trimmed files play from 0:00.
 - **Hero**: stops as soon as you scroll down, moves to the next slide when a trailer ends (20 s timer for Drive-player/YouTube fallbacks, which cannot report their end), swipe left/right on phones.
 - **Genres**: `lib/genres.ts` holds the genre list (Mongolian labels + English/Mongolian spellings the sheet may use). The site reads the sheet's category/genre column and maps it. For titles the sheet does not cover, add them in `lib/genre-overrides.ts`.
+
+## Resend email verification
+
+Local secrets belong in ignored `.dev.vars` (never in `.env*`, source code, or the browser):
+
+```dotenv
+RESEND_API_KEY=<your sending key>
+EMAIL_FROM=Bantan TV <noreply@bantan.tv>
+```
+
+The sender must use a verified Resend domain. API-key display names are informational; the email sender comes from `EMAIL_FROM`. Restart the local server after changing `.dev.vars`. In production set `RESEND_API_KEY` as a Worker secret and `EMAIL_FROM` as a Worker variable/secret, retain the existing strong `AUTH_SECRET`, and apply `npm run db:migrate:remote` before deploying. Never deploy or migrate production as part of the local tests.
+
+Signup returns HTTP 202 with a challenge, not a session. Verified login returns a session immediately without sending an email; unverified login returns HTTP 403 and directs the user to finish signup. The signup screen can resume an incomplete registration using its original password. `/api/auth/verify-email` consumes the code and issues the signed cookie. `/api/auth/resend-verification` rotates the code with a cooldown and send cap. If mail delivery fails, the UI reports the failure and permits a bounded retry; it does not report the account as verified. Email ownership verification happens once; later logins use email and password.
+
+`npm run test:auth` runs a local Next.js server at port 3002 against local D1 and an in-memory Resend substitute; no email leaves the machine. Stop the regular Next.js development server first (both share `.next/dev`). The test covers delivery failure, session gating, expiry, cooldown, rotation, concurrent consumption, guess limits, signup-only verification, password reset, concurrent single-use reset links, old-password rejection, and revocation of all old sessions. The fake endpoint is restricted to development, loopback, and the literal test key. It cannot replace Resend in a production build. `npm test` also checks code hashing and deterministic Tetris scoring.
+
+## Password recovery
+
+The login screen links to `/forgot-password`. Requests to `/api/auth/forgot-password` return the same generic response for existing and unknown accounts, and send a Resend email only when an account exists. Rate limits and a sixty-second cooldown bound mail requests. Production links always use `https://www.bantan.tv`; local development links use localhost. Request headers cannot override the production destination.
+
+Reset links expire after thirty minutes, are single-use, and carry a random 256-bit token in the URL fragment so the token does not appear in HTTP access logs or referrers. Only the token hash is stored in D1. `/reset-password` submits the token with the new password to `/api/auth/reset-password`. Successful reset atomically changes the password, increments the session version to revoke existing sessions, invalidates other recovery links and outstanding signup codes, and confirms email ownership. It does not auto-login; the user signs in with the new password. Failed mail delivery never creates a usable reset token.
+
+Apply migration `0004_password_reset.sql` to the target D1 database before deploying. Local testing never migrates the production database or sends real email.

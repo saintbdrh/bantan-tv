@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AccountButton } from '@/components/AccountButton';
 
 const navItems = [
   { label: 'Нүүр', href: '/' },
   { label: 'Кино сан', href: '/movies' },
   { label: 'Хөтөлбөр', href: '/schedule' },
+  { label: 'Тоглоом', href: '/games' },
+  { label: 'Гацуур', href: '/trees' },
   { label: 'Бидний тухай', href: '/about' }
 ];
 
@@ -117,9 +120,7 @@ export function Navbar() {
           >
             ⌕
           </button>
-          <Link href="/login" className="ghost-button hidden-mobile">
-            НЭВТРЭХ
-          </Link>
+          <AccountButton />
           <button
             ref={menuBtnRef}
             type="button"

@@ -123,7 +123,7 @@ function QuizGame({ movies }: { movies: GameMovie[] }) {
   return (
     <article className="game-card">
       <div className="game-card-top">
-        <span className="game-icon" aria-hidden="true">?</span>
+        <span className="game-icon" aria-hidden="true"></span>
         <span className="game-count">КИНО QUIZ</span>
       </div>
       <h3 className="game-card-title">Кино мэдлэгээ сорь</h3>
@@ -195,7 +195,7 @@ function PosterGame({ movies }: { movies: GameMovie[] }) {
   return (
     <article className="game-card">
       <div className="game-card-top">
-        <span className="game-icon" aria-hidden="true">🎬</span>
+        <span className="game-icon" aria-hidden="true"></span>
         <span className="game-count">ПОСТЕРООС ТАА</span>
       </div>
       <h3 className="game-card-title">Ямар кино вэ?</h3>

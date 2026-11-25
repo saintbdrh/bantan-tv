@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSessionToken, registerUser, SESSION_COOKIE, sessionCookieOptions } from '@/lib/auth';
+import { registerUser } from '@/lib/auth';
+import { authInput } from '@/lib/auth-input';
+import { apiError } from '@/lib/api';
+import { beginVerification } from '@/lib/email-verification';
+import { emailSettings } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
-  let body: { fullName?: string; email?: string; password?: string };
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
-  }
-
+  const body = await authInput(req, true);
+  await emailSettings();
   const result = await registerUser(
     String(body.fullName ?? ''),
     String(body.email ?? ''),
@@ -18,7 +18,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error ?? 'Алдаа' }, { status: 400 });
   }
 
-  const res = NextResponse.json({ ok: true, user: result.user });
-  res.cookies.set(SESSION_COOKIE, createSessionToken(result.user), sessionCookieOptions());
-  return res;
+  return NextResponse.json(await beginVerification(result.user), {status:202,headers:{'Cache-Control':'no-store'}});
+  } catch(error) { return apiError(error); }
 }

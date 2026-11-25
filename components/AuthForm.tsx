@@ -1,12 +1,14 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { SiteShell } from '@/components/SiteShell';
 import { HomeBack } from '@/components/HomeBack';
+import { EmailVerificationForm, type VerificationChallenge } from '@/components/EmailVerificationForm';
 
 type AuthFormProps = {
   mode: 'login' | 'signup';
+  next?: string;
 };
 
 type FieldErrors = {
@@ -20,16 +22,13 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
-  const [isLogin, setIsLogin] = useState(mode === 'login');
+export function AuthForm({ mode, next }: AuthFormProps) {
+  const isLogin = mode === 'login';
   const [form, setForm] = useState({ fullName: '', email: '', password: '' });
   const [errors, setErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setIsLogin(mode === 'login');
-    setErrors({});
-  }, [mode]);
+  const [verification,setVerification]=useState<VerificationChallenge|null>(null);
+  const nextPath = typeof next === 'string' && /^\/(?:games|account|trees(?:\/[\w-]{1,64})?)$/.test(next) ? next : '/account';
 
   const validate = (): FieldErrors => {
     const next: FieldErrors = {};
@@ -37,7 +36,8 @@ export function AuthForm({ mode }: AuthFormProps) {
     if (!email) next.email = 'Имэйл оруулна уу.';
     else if (!isValidEmail(email)) next.email = 'Имэйл буруу байна.';
     if (!form.password) next.password = 'Нууц үг оруулна уу.';
-    else if (form.password.length < 6) next.password = 'Нууц үг хамгийн багадаа 6 тэмдэгт.';
+    else if (!isLogin && form.password.length < 8) next.password = 'Нууц үг хамгийн багадаа 8 тэмдэгт.';
+    else if (form.password.length > 128) next.password = 'Нууц үг хамгийн ихдээ 128 тэмдэгт.';
     if (!isLogin && !form.fullName.trim()) next.fullName = 'Нэр оруулна уу.';
     return next;
   };
@@ -64,18 +64,26 @@ export function AuthForm({ mode }: AuthFormProps) {
           password: form.password
         })
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string } & Partial<VerificationChallenge>;
       if (!res.ok) {
         setErrors({ form: data.error || 'Алдаа гарлаа.' });
         setLoading(false);
         return;
       }
-      window.location.href = '/';
+      if(data.verificationRequired && data.challengeId) {
+        setVerification(data as VerificationChallenge);
+        setForm(f=>({...f,password:''}));
+        setLoading(false);
+        return;
+      }
+      window.location.href = nextPath;
     } catch {
       setErrors({ form: 'Сүлжээний алдаа. Дахин оролдоно уу.' });
       setLoading(false);
     }
   };
+
+  if(verification) return <SiteShell><div className="container"><HomeBack/><EmailVerificationForm initial={verification} nextPath={nextPath} onBack={()=>{setVerification(null);setErrors({});}}/></div></SiteShell>;
 
   return (
     <SiteShell>
@@ -86,8 +94,8 @@ export function AuthForm({ mode }: AuthFormProps) {
           <h1>{isLogin ? 'Нэвтрэх' : 'Бүртгүүлэх'}</h1>
           <p className="auth-sub">
             {isLogin
-              ? 'Сервер дээрх бүртгэлээр нэвтэрнэ үү.'
-              : 'Шинэ бүртгэл үүсгэнэ үү (сервер хадгална).'}
+              ? 'Имэйлээрээ нэвтэрч, тоглоомын оноо болон гацуураа хадгалаарай.'
+              : 'Бүртгүүлсний дараа имэйлд ирэх 6 оронтой кодоор хаягаа баталгаажуулна.'}
           </p>
 
           <form onSubmit={handleSubmit} noValidate>
@@ -99,6 +107,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                   value={form.fullName}
                   onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
                   autoComplete="name"
+                  maxLength={80}
                   aria-invalid={!!errors.fullName}
                   aria-describedby={errors.fullName ? 'err-fullName' : undefined}
                 />
@@ -117,6 +126,7 @@ export function AuthForm({ mode }: AuthFormProps) {
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 autoComplete="email"
+                maxLength={254}
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? 'err-email' : undefined}
               />
@@ -134,7 +144,8 @@ export function AuthForm({ mode }: AuthFormProps) {
                 value={form.password}
                 onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                 autoComplete={isLogin ? 'current-password' : 'new-password'}
-                minLength={6}
+                minLength={isLogin ? 1 : 8}
+                maxLength={128}
                 aria-invalid={!!errors.password}
                 aria-describedby={errors.password ? 'err-password' : undefined}
               />
@@ -159,14 +170,16 @@ export function AuthForm({ mode }: AuthFormProps) {
             )}
           </form>
 
+          {isLogin && <p className="auth-switch"><Link href="/forgot-password">Нууц үгээ мартсан уу?</Link></p>}
+
           <p className="auth-switch">
             {isLogin ? (
               <>
-                Бүртгэлгүй юу? <Link href="/signup">Бүртгүүлэх</Link>
+                Бүртгэлгүй юу? <Link href={`/signup?next=${encodeURIComponent(nextPath)}`}>Бүртгүүлэх</Link>
               </>
             ) : (
               <>
-                Аль хэдийн бүртгэлтэй юу? <Link href="/login">Нэвтрэх</Link>
+                Аль хэдийн бүртгэлтэй юу? <Link href={`/login?next=${encodeURIComponent(nextPath)}`}>Нэвтрэх</Link>
               </>
             )}
           </p>

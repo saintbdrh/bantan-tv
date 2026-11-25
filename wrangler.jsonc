@@ -11,6 +11,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "bantan-tv",
+  "account_id": "5f8916a0b4eb3936e27a0e3bcb713bf7",
   // custom-worker.ts wraps the generated .open-next/worker.js and adds edge
   // caching for optimized images (/_next/image).
   "main": "custom-worker.ts",

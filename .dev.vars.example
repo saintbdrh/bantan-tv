@@ -7,3 +7,7 @@ NEXTJS_ENV=development
 # Needed for sign-up/login in the preview, which runs a production build.
 # Paste the output of: openssl rand -hex 32
 AUTH_SECRET=
+
+# Resend: a sending API key and an address on your verified sending domain.
+RESEND_API_KEY=
+EMAIL_FROM=Bantan TV <noreply@bantan.tv>

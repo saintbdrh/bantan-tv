@@ -1,6 +1,7 @@
 import { SiteShell } from '@/components/SiteShell';
 import { HomeBack } from '@/components/HomeBack';
 import { PartnerBanner } from '@/components/PartnerBanner';
+import { PartnerLogos } from '@/components/PartnerLogos';
 
 export default function AdvertisePage() {
   return (
@@ -15,6 +16,7 @@ export default function AdvertisePage() {
           </p>
         </div>
         <PartnerBanner />
+        <PartnerLogos />
       </div>
     </SiteShell>
   );

@@ -5,6 +5,8 @@ import { Footer } from '@/components/Footer';
 import { EpgSection } from '@/components/EpgSection';
 import { GamesSection } from '@/components/GamesSection';
 import { PartnerBanner } from '@/components/PartnerBanner';
+import { PartnerLogos } from '@/components/PartnerLogos';
+import { CommunityLinks } from '@/components/CommunityLinks';
 import { getMovies, moviesWithTrailers, withPosters } from '@/lib/movies';
 import { GENRES } from '@/lib/genres';
 
@@ -51,6 +53,7 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <CommunityLinks />
         {gameMovies.length > 0 && <GamesSection movies={gameMovies} />}
 
         {genreRows.map(({ genre, movies: list }) => (
@@ -90,6 +93,7 @@ export default async function HomePage() {
         <section className="section">
           <div className="container">
             <PartnerBanner />
+              <PartnerLogos />
           </div>
         </section>
       </main>

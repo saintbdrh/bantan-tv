@@ -14,6 +14,7 @@ export type SessionUser = {
   id: string;
   fullName: string;
   email: string;
+  sessionVersion?: number;
 };
 
 const SESSION_COOKIE = 'bantan_session';
@@ -28,7 +29,7 @@ const PLACEHOLDER_PREFIX = 'replace-with';
  * placeholder or short secret is a configuration error: refuse to issue or
  * accept sessions rather than sign them with a guessable key.
  */
-function authSecret(): string {
+export function authSecret(): string {
   const secret = process.env.AUTH_SECRET;
   if (process.env.NODE_ENV !== 'production') return secret || DEV_SECRET;
   if (!secret || secret.length < MIN_SECRET_LENGTH || secret.startsWith(PLACEHOLDER_PREFIX)) {
@@ -45,6 +46,8 @@ type UserRow = {
   full_name: string;
   email: string;
   password_hash: string;
+  email_verified_at: string | null;
+  session_version: number;
 };
 
 export function hashPassword(password: string): string {
@@ -94,7 +97,7 @@ export function parseSessionToken(token: string | undefined): SessionUser | null
     };
     if (!data.exp || data.exp < Date.now()) return null;
     if (!data.id || !data.email) return null;
-    return { id: data.id, fullName: data.fullName, email: data.email };
+    return { id: data.id, fullName: data.fullName, email: data.email, sessionVersion: data.sessionVersion ?? 0 };
   } catch {
     return null;
   }
@@ -102,7 +105,11 @@ export function parseSessionToken(token: string | undefined): SessionUser | null
 
 export async function getSession(): Promise<SessionUser | null> {
   const jar = await cookies();
-  return parseSessionToken(jar.get(SESSION_COOKIE)?.value);
+  const user = parseSessionToken(jar.get(SESSION_COOKIE)?.value);
+  if (!user) return null;
+  const db = await getDb();
+  const record = await db.prepare('SELECT id,full_name,email,session_version FROM users WHERE id=? AND email=? AND email_verified_at IS NOT NULL AND session_version=?').bind(user.id,user.email,user.sessionVersion ?? 0).first<UserRow>();
+  return record ? {id:record.id,fullName:record.full_name,email:record.email,sessionVersion:record.session_version} : null;
 }
 
 export function sessionCookieOptions(maxAge = SESSION_TTL_MS / 1000) {
@@ -125,15 +132,20 @@ export async function registerUser(
   password: string
 ): Promise<{ user?: SessionUser; error?: string }> {
   const normalized = email.trim().toLowerCase();
-  if (!fullName.trim() || !normalized || password.length < 6) {
-    return { error: 'Нэр, имэйл, 6+ тэмдэгттэй нууц үг шаардлагатай.' };
+  if (!fullName.trim() || fullName.length > 80 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) || normalized.length > 254 || password.length < 8 || password.length > 128) {
+    return { error: 'Нэр, зөв имэйл, 8–128 тэмдэгттэй нууц үг шаардлагатай.' };
   }
   // Fail before creating the account if sessions cannot be signed.
   authSecret();
 
   const db = await getDb();
-  const existing = await db.prepare('SELECT id FROM users WHERE email = ?').bind(normalized).first();
+  const existing = await db.prepare('SELECT id,full_name,email,password_hash,email_verified_at,session_version FROM users WHERE email = ?').bind(normalized).first<UserRow>();
   if (existing) {
+    // Continue an interrupted signup only with its original password. Login
+    // never sends codes; the signup screen owns all signup verification.
+    if (!existing.email_verified_at && verifyPassword(password,existing.password_hash)) {
+      return {user:{id:existing.id,fullName:existing.full_name,email:existing.email,sessionVersion:existing.session_version}};
+    }
     return { error: DUPLICATE_EMAIL };
   }
 
@@ -164,15 +176,15 @@ export async function registerUser(
 export async function loginUser(
   email: string,
   password: string
-): Promise<{ user?: SessionUser; error?: string }> {
+): Promise<{ user?: SessionUser; error?: string; needsVerification?: boolean }> {
   const normalized = email.trim().toLowerCase();
   const db = await getDb();
   const found = await db
-    .prepare('SELECT id, full_name, email, password_hash FROM users WHERE email = ?')
+    .prepare('SELECT id, full_name, email, password_hash, email_verified_at, session_version FROM users WHERE email = ?')
     .bind(normalized)
     .first<UserRow>();
   if (!found || !verifyPassword(password, found.password_hash)) {
     return { error: 'Имэйл эсвэл нууц үг буруу байна.' };
   }
-  return { user: { id: found.id, fullName: found.full_name, email: found.email } };
+  return { user: { id: found.id, fullName: found.full_name, email: found.email,sessionVersion:found.session_version }, needsVerification: !found.email_verified_at };
 }

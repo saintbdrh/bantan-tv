@@ -2,6 +2,9 @@
   "name": "bantan-streaming-redesign",
   "private": true,
   "scripts": {
+    "test": "node --test tests/tetris.test.mjs tests/verification.test.mjs tests/reset-token.test.mjs",
+    "test:auth": "node tests/auth.integration.mjs",
+    "test:integration": "node tests/community.integration.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

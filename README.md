@@ -127,3 +127,11 @@ The login screen links to `/forgot-password`. Requests to `/api/auth/forgot-pass
 Reset links expire after thirty minutes, are single-use, and carry a random 256-bit token in the URL fragment so the token does not appear in HTTP access logs or referrers. Only the token hash is stored in D1. `/reset-password` submits the token with the new password to `/api/auth/reset-password`. Successful reset atomically changes the password, increments the session version to revoke existing sessions, invalidates other recovery links and outstanding signup codes, and confirms email ownership. It does not auto-login; the user signs in with the new password. Failed mail delivery never creates a usable reset token.
 
 Apply migration `0004_password_reset.sql` to the target D1 database before deploying. Local testing never migrates the production database or sends real email.
+
+## Sharing Christmas trees
+
+Each tree has a “Хуваалцах” button with portrait Story (1080×1920) and Facebook/link-card (1200×630) formats. Both PNGs include current public decoration positions and the tree title; messages and account emails are excluded. The image endpoint caches each public decoration revision at the Cloudflare edge. The tree page supplies server-rendered Open Graph/Twitter metadata so Facebook and messaging apps can show a real preview without JavaScript.
+
+The dialog prepares the PNG before a separate share tap, preserving browser user activation. Supported phones use native file sharing. Other devices can download the PNG, upload it to Instagram/Facebook Stories, and add the tree URL as a Link sticker. Browser sharing cannot guarantee a particular app or its Story composer is available; the UI offers download and link-copy fallbacks. The Facebook button opens the standard link-sharing composer, not an automatic Story post.
+
+With the local app running on port 3002 and local D1 migrations applied, `npm run test:sharing` creates disposable local fixtures and checks PNG dimensions, visible tree rendering, missing trees, and crawler metadata. Set `BANTAN_SHARE_TEST_URL=http://127.0.0.1:8787` for a local Wrangler production-runtime preview. No production fixtures or social posts are created.

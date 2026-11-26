@@ -27,6 +27,10 @@
   // Required by OpenNext for ISR revalidation.
   "services": [
     {
+      "binding": "TREE_SHARE_IMAGES",
+      "service": "bantan-tree-share-images"
+    },
+    {
       "binding": "WORKER_SELF_REFERENCE",
       "service": "bantan-tv"
     }

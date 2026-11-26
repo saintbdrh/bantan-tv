@@ -135,3 +135,9 @@ Each tree has a “Хуваалцах” button with portrait Story (1080×1920)
 The dialog prepares the PNG before a separate share tap, preserving browser user activation. Supported phones use native file sharing. Other devices can download the PNG, upload it to Instagram/Facebook Stories, and add the tree URL as a Link sticker. Browser sharing cannot guarantee a particular app or its Story composer is available; the UI offers download and link-copy fallbacks. The Facebook button opens the standard link-sharing composer, not an automatic Story post.
 
 With the local app running on port 3002 and local D1 migrations applied, `npm run test:sharing` creates disposable local fixtures and checks PNG dimensions, visible tree rendering, missing trees, and crawler metadata. Set `BANTAN_SHARE_TEST_URL=http://127.0.0.1:8787` for a local Wrangler production-runtime preview. No production fixtures or social posts are created.
+
+### Private share-image renderer
+
+Share images are rendered by the private `bantan-tree-share-images` Worker (`wrangler.tree-images.jsonc`) through the main Worker's `TREE_SHARE_IMAGES` service binding. The renderer has no public route, database binding, media bucket, or email secrets. It accepts only bounded public tree data, serializes render work per isolate, and explicitly frees Resvg WASM buffers after each PNG. This keeps expensive rendering outside the Next.js site's memory budget.
+
+Deploy the renderer first with `npm run deploy:tree-images`, then deploy the main site. `npm run deploy` performs both. In Workers Builds use `npm run deploy:tree-images && npx opennextjs-cloudflare deploy` as the deploy command after the OpenNext build. For local integration checks, run `wrangler dev --config wrangler.tree-images.jsonc --port 8788` alongside the main Wrangler preview; service bindings connect the processes automatically.

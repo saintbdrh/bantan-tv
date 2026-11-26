@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bantan-tree-share-images",
+  "account_id": "5f8916a0b4eb3936e27a0e3bcb713bf7",
+  "main": "workers/tree-share-images.tsx",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "rules": [{ "type": "Data", "globs": ["**/*.ttf"], "fallthrough": true }],
+  "observability": { "enabled": true }
+}

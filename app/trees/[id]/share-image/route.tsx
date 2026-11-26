@@ -1,5 +1,4 @@
-import { ImageResponse } from 'next/og';
-import { TreeShareCard } from '@/components/TreeShareCard';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { getSharedTree, sharedTreeRevision, TREE_SHARE_ORIGIN } from '@/lib/tree-sharing';
 
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}) {
@@ -13,8 +12,12 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const cache=typeof caches!=='undefined'?(caches as unknown as {default?:Cache}).default:undefined;
     const key=new Request(`${TREE_SHARE_ORIGIN}/trees/${encodeURIComponent(id)}/share-image?format=${format}&v=${revision}`);
     try { const hit=await cache?.match(key);if(hit)return hit; } catch { /* Cache API is optional in local preview. */ }
-    const image=new ImageResponse(TreeShareCard({tree,story}),{width:story?1080:1200,height:story?1920:630});
-    const response=new Response(await image.arrayBuffer(),{headers:{
+    const {env}=await getCloudflareContext({async:true});
+    const renderer=(env as unknown as {TREE_SHARE_IMAGES?:Fetcher}).TREE_SHARE_IMAGES;
+    if(!renderer)return new Response('Image service unavailable',{status:503});
+    const image=await renderer.fetch('https://tree-share/render',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tree,story})});
+    if(!image.ok)return new Response('Image temporarily unavailable',{status:503,headers:{'Cache-Control':'no-store','Retry-After':'2'}});
+    const response=new Response(image.body,{headers:{
       'Content-Type':'image/png',
       'Cache-Control':'public, max-age=300, stale-while-revalidate=60',
       'Content-Disposition':`inline; filename="bantan-tree-${format}.png"`,

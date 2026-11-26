@@ -9,15 +9,15 @@ import { ORNAMENTS } from '../lib/trees';
 import type { SharedTree } from '../lib/tree-sharing';
 
 let initialization:Promise<unknown>|undefined;
-let rendering=false;
+let renderingUntil=0;
 
 export default {
   async fetch(request:Request):Promise<Response> {
     if(request.method!=='POST')return new Response('Method not allowed',{status:405});
     // Keep WASM raster memory bounded even when the same isolate receives
     // overlapping requests. Only the main Worker can reach this service.
-    if(rendering)return new Response('Renderer busy',{status:503,headers:{'Retry-After':'2'}});
-    rendering=true;
+    if(Date.now()<renderingUntil)return new Response('Renderer busy',{status:503,headers:{'Retry-After':'2'}});
+    renderingUntil=Date.now()+15000;
     try {
       const text=await request.text();
       if(text.length>10000)return new Response('Payload too large',{status:413});
@@ -37,6 +37,6 @@ export default {
         image?.free();raster.free();
       }
     }catch(error){console.error('Tree renderer failed',error instanceof Error?error.message:'Unknown error');return new Response('Image temporarily unavailable',{status:503});}
-    finally{rendering=false;}
+    finally{renderingUntil=0;}
   },
 };

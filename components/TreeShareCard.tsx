@@ -1,5 +1,5 @@
 import type { SharedTree } from '@/lib/tree-sharing';
-import { TREE_SLOTS, type OrnamentKind } from '@/lib/trees';
+import { treeSlots, COMMUNITY_TREE_ID, COMMUNITY_TREE_SLOTS, type OrnamentKind } from '@/lib/trees';
 
 function Decoration({kind}:{kind:OrnamentKind}) {
   if(kind==='star')return <path d="M0 -23 L6 -7 23 -7 10 4 15 21 0 11 -15 21 -10 4 -23 -7 -6 -7Z" fill="#ffe3a1" stroke="#fff3d5" strokeWidth="1.5"/>;
@@ -20,8 +20,9 @@ export function ShareTree({tree,width,height,top,left}:{tree:SharedTree;width:nu
     <path d="M200 62 L271 178 L243 178 L300 259 L269 259 L330 345 L296 345 L365 440 Q282 468 200 447 Q118 468 35 440 L104 345 L70 345 L131 259 L100 259 L157 178 L129 178Z" fill="url(#share-pine)" stroke="#6abf90" strokeOpacity=".35" strokeWidth="1.5"/>
     <path d="M145 173 Q200 200 256 173 M115 254 Q200 290 286 254 M86 339 Q200 383 315 339 M57 426 Q200 471 344 426" stroke="#e8c77e" strokeWidth="2.5" fill="none" strokeDasharray="1 7" strokeLinecap="round"/>
     {[{x:159,y:180},{x:230,y:184},{x:144,y:267},{x:248,y:270},{x:126,y:350},{x:278,y:352},{x:100,y:438},{x:297,y:440}].map(({x,y})=><g key={x}><circle cx={x} cy={y} r="8" fill="#ffdc91" opacity=".12"/><circle cx={x} cy={y} r="3" fill="#ffe8ae"/></g>)}
+    {tree.id===COMMUNITY_TREE_ID&&<g>{COMMUNITY_TREE_SLOTS.filter((_,index)=>index>0&&index%5===0).map((point,index)=><circle key={index} cx={point.x*4} cy={point.y*5.2} r="3.5" fill={['#df7568','#e5bf72','#87c8b0'][index%3]}/>)}</g>}
     {!tree.ornaments.some(item=>item.slot===0)&&<g transform="translate(200 42)">{Decoration({kind:'star'})}</g>}
-    {tree.ornaments.map(item=>{const position=TREE_SLOTS[item.slot];return position?<g key={item.slot} transform={`translate(${position.x*4} ${position.y*5.2}) scale(.82)`}>{Decoration({kind:item.kind})}</g>:null;})}
+    {tree.ornaments.map(item=>{const position=treeSlots(tree.id)[item.slot];return position?<g key={item.slot} transform={`translate(${position.x*4} ${position.y*5.2}) scale(${tree.id===COMMUNITY_TREE_ID&&item.slot!==0?.38:.82})`}>{Decoration({kind:item.kind})}</g>:null;})}
     <g transform="translate(100 468)">{Decoration({kind:'gift'})}</g><g transform="translate(298 468) scale(.8)">{Decoration({kind:'gift'})}</g>
   </svg>;
 }

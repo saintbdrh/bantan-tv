@@ -55,16 +55,16 @@ assert.equal((await request('/api/trees',{...gift,slot:0,kind:'heart'},owner)).s
 assert.equal((await request('/api/trees',{...gift,slot:9,kind:'toString'},owner)).status,400);
 const star=await Promise.all([request('/api/trees',{...gift,slot:0,kind:'star'},owner),request('/api/trees',{...gift,slot:0,kind:'star'},owner)]);
 assert.deepEqual(star.map(r=>r.status).sort(),[200,409]);
-assert.equal((await request('/api/tetris',{action:'start'})).status,401);
-const run=await request('/api/tetris',{action:'start'},owner);
-assert.equal(run.status,200);
+assert.equal((await request('/api/tetris',{action:'start',rulesVersion:2})).status,401);
+const run=await request('/api/tetris',{action:'start',rulesVersion:2},owner);
+assert.equal(run.status,200);assert.equal(run.data.rulesVersion,2);
 assert.equal((await request('/api/tetris',{action:'finish',id:run.data.id,ticks:0,moves:[]},visitor.cookie)).status,404);
 const finish=await request('/api/tetris',{action:'finish',id:run.data.id,ticks:0,moves:[],score:999999},owner);
 assert.equal(finish.status,200);assert.equal(finish.data.score,0);
 assert.equal((await request('/api/tetris',{action:'finish',id:run.data.id,ticks:0,moves:[]},owner)).data.saved,true);
 assert((await request('/api/tetris',null,owner)).data.leaders.some(row=>row.name==='QA Tree Owner'));
 // Play a deterministic non-zero scoring game and verify the D1 record after a fresh GET.
-const scoringRun=await request('/api/tetris',{action:'start'},owner);
+const scoringRun=await request('/api/tetris',{action:'start',rulesVersion:2},owner);
 const game=newGame(scoringRun.data.seed);
 const replayMoves=[];
 for(let piece=0;piece<100 && !game.over && game.score===0;piece++) {
@@ -85,6 +85,13 @@ const scored=await request('/api/tetris',{action:'finish',id:scoringRun.data.id,
 assert.equal(scored.status,200,JSON.stringify(scored.data));
 assert.equal(scored.data.score,game.score);
 assert.equal((await request('/api/tetris',null,owner)).data.best,game.score);
+// Cached pre-upgrade clients retain their original replay rules.
+const legacy=await request('/api/tetris',{action:'start'},owner);assert.equal(legacy.data.rulesVersion,1);
+assert.equal((await request('/api/tetris',{action:'finish',id:legacy.data.id,ticks:0,moves:[{tick:0,action:'rotateCCW'}]},owner)).status,400);
+assert.equal((await request('/api/tetris',{action:'finish',id:legacy.data.id,ticks:0,moves:[{tick:0,action:'rotate'},{tick:0,action:'drop'}]},owner)).status,200);
+const modern=await request('/api/tetris',{action:'start',rulesVersion:2},owner);
+assert.equal((await request('/api/tetris',{action:'finish',id:modern.data.id,ticks:0,moves:[{tick:0,action:'rotateCCW'}]},owner)).status,200);
+assert.equal((await request('/api/tetris',{action:'start',rulesVersion:99},owner)).status,400);
 assert.equal((await request('/api/auth/logout',{},owner)).status,200);
 console.log('PASS: email signup/login, session, origin checks, public tree persistence, ownership, quotas, concurrent star claims, replay scoring, idempotency and leaderboard.');
 console.log('QA_TREE_ID='+treeId);

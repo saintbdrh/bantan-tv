@@ -145,3 +145,9 @@ With the local app running on port 3002 and local D1 migrations applied, `npm ru
 Migration `0005_community_tree.sql` adds a separate community ornament table. It does not change personal trees or create a synthetic user account. Apply migrations before deploying the site. Run `npm run test:community-tree` against local Next dev on port 3002 to check persistence, authorization, quotas, concurrent claims and personal-tree limits.
 
 The Story share button starts link copying and native image sharing in the same tap, without awaiting the clipboard before opening the share sheet. Devices without file sharing download the PNG instead. If clipboard access fails, the dialog retains a copy button and selectable URL. Adding Instagram's actual Link sticker remains a manual step.
+
+### Tetris rotation and landing rules
+
+Rules v2 use fixed rotation pivots, SRS wall/floor kicks for both directions (up/X clockwise, Z/Ctrl counterclockwise), a 9-tick/540 ms landing delay, and at most 15 grounded movement/rotation resets. Soft drop cannot force an early lock; Space/hard drop deliberately locks immediately. The board has stronger cell/center-column guides, an optional ghost landing piece and a lock timer. Successful rotated T placements use a three-corner T-spin test with 400/800/1200/1600 points for zero/one/two/three cleared lines, multiplied by level; mini classification and back-to-back bonuses are not implemented.
+
+Migration `0006_tetris_rules.sql` records the replay rules on each run. Existing runs and clients that omit `rulesVersion` use the preserved v1 engine. New clients explicitly request v2, and the server dispatches replays using the stored version, not a finish-request override. Completed scores remain unchanged. Tests cover floor/wall kicks, both rotations, lock timing/reset caps, a T-spin double, deterministic replay and both API versions.

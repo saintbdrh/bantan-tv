@@ -1,12 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { ShareTree } from '@/components/TreeShareCard';
+import type { OrnamentKind } from '@/lib/trees';
 
-type Format='story'|'card';
+type Format='story'|'threads';
 const CANONICAL_ORIGIN='https://www.bantan.tv';
 
-export function TreeShareControls({id,title,revision}:{id:string;title:string;revision:string}) {
+export function TreeShareControls({id,title,ornaments}:{id:string;title:string;ornaments:{slot:number;kind:OrnamentKind}[]}) {
   const dialog=useRef<HTMLDialogElement>(null);
+  const artwork=useRef<HTMLDivElement>(null);
   const pending=useRef<AbortController|null>(null);
   const objectUrl=useRef<string|null>(null);
   const [format,setFormat]=useState<Format>('story');
@@ -25,9 +28,11 @@ export function TreeShareControls({id,title,revision}:{id:string;title:string;re
     setFormat(nextFormat);setFile(null);setPreview('');setError('');setNotice('');setLoading(true);
     if(objectUrl.current){URL.revokeObjectURL(objectUrl.current);objectUrl.current=null;}
     try {
-      const response=await fetch(`/trees/${encodeURIComponent(id)}/share-image?format=${nextFormat}&v=${encodeURIComponent(revision)}`,{signal:controller.signal});
-      if(!response.ok || !response.headers.get('content-type')?.includes('image/png'))throw new Error('Зураг үүсгэж чадсангүй. Дахин оролдоно уу.');
-      const blob=await response.blob();
+      if(nextFormat==='threads'){setPreview('/images/tree-link-preview.png');return;}
+      const svg=artwork.current?.querySelector('svg');
+      if(!svg)throw new Error('Гацуурын зураг бэлэн биш байна.');
+      const {createTreeStory}=await import('@/lib/tree-story-image');
+      const blob=await createTreeStory(svg,title,ornaments.length);
       if(controller.signal.aborted)return;
       const image=new File([blob],`bantan-tree-${nextFormat}.png`,{type:'image/png'});
       objectUrl.current=URL.createObjectURL(image);setPreview(objectUrl.current);setFile(image);
@@ -39,7 +44,7 @@ export function TreeShareControls({id,title,revision}:{id:string;title:string;re
 
   async function shareImage() {
     if(!file)return;
-    if(!navigator.canShare?.({files:[file]})) {setNotice('Энэ төхөөрөмж зураг шууд хуваалцахгүй байна. Зургаа хадгалаад Instagram эсвэл Facebook Story-д оруулаарай.');return;}
+    if(!navigator.canShare?.({files:[file]})) {setNotice('Энэ төхөөрөмж зураг шууд хуваалцахгүй байна. Зургаа хадгалаад Instagram Story-д оруулаарай.');return;}
     setSharing(true);setError('');setNotice('');
     try {await navigator.share({files:[file]});}
     catch(error){if(!(error instanceof DOMException && error.name==='AbortError'))setError('Хуваалцах цонх нээгдсэнгүй. Зураг хадгалах сонголтыг ашиглаарай.');}
@@ -58,21 +63,21 @@ export function TreeShareControls({id,title,revision}:{id:string;title:string;re
     catch{setError('Холбоосыг доорх талбараас сонгож хуулна уу.');}
   }
 
-  return <><button className="live-button" type="button" onClick={open}>Хуваалцах ↗</button>
+  return <><div hidden ref={artwork} aria-hidden="true"><ShareTree tree={{id,title,name:'',ornaments}} width={400} height={520}/></div><button className="live-button" type="button" onClick={open}>Хуваалцах ↗</button>
     <dialog ref={dialog} className="tree-share-dialog" aria-labelledby="tree-share-title" onClick={event=>{if(event.target===dialog.current)close();}} onCancel={()=>pending.current?.abort()}>
       <div className="tree-share-header"><div><p className="eyebrow">SHARE A LITTLE MAGIC</p><h2 id="tree-share-title">Гацуураа хуваалцаарай</h2></div><button type="button" className="icon-button" aria-label="Хуваалцах цонх хаах" onClick={close}>×</button></div>
       <div className="tree-share-layout"><div className={`tree-share-preview ${format}`} aria-busy={loading}>
-        {preview?<img src={preview} alt={`${title} — ${format==='story'?'Story':'Facebook'} хуваалцах зураг`} width={format==='story'?1080:1200} height={format==='story'?1920:630}/>:<div className="tree-share-placeholder" role="status">{loading?'Зургийг бэлдэж байна…':'Зураг хараахан бэлэн биш байна.'}</div>}
+        {preview?<img src={preview} alt={`${title} — ${format==='story'?'Instagram Story':'Threads'} хуваалцах зураг`} width={format==='story'?1080:1200} height={format==='story'?1920:630}/>:<div className="tree-share-placeholder" role="status">{loading?'Зургийг бэлдэж байна…':'Зураг хараахан бэлэн биш байна.'}</div>}
       </div><div className="tree-share-options">
-        <div className="share-format-options" role="group" aria-label="Зургийн хэмжээ"><button type="button" className={format==='story'?'selected':''} aria-pressed={format==='story'} onClick={()=>void prepare('story')}>Story <span>9:16</span></button><button type="button" className={format==='card'?'selected':''} aria-pressed={format==='card'} onClick={()=>void prepare('card')}>Facebook <span>1.91:1</span></button></div>
-        <p className="community-muted">Instagram болон Facebook Story-д зориулсан зураг. Таны гацуурын одоогийн чимэглэлүүд багтана.</p>
-        <button type="button" className="live-button" disabled={!file || sharing} onClick={()=>void shareImage()}>{sharing?'Хуваалцаж байна…':'Зураг хуваалцах ↗'}</button>
-        {preview?<a className="ghost-button" href={preview} download={`bantan-tree-${format}.png`}>PNG зураг хадгалах ↓</a>:<button type="button" className="ghost-button" disabled={loading} onClick={()=>void prepare(format)}>{loading?'Бэлдэж байна…':'Зургийг дахин бэлдэх'}</button>}
+        <div className="share-format-options" role="group" aria-label="Зургийн хэмжээ"><button type="button" className={format==='story'?'selected':''} aria-pressed={format==='story'} onClick={()=>void prepare('story')}>Story <span>9:16</span></button><button type="button" className={format==='threads'?'selected':''} aria-pressed={format==='threads'} onClick={()=>void prepare('threads')}>Threads <span>Холбоос</span></button></div>
+        <p className="community-muted">{format==='story'?'Instagram Story зурагт таны гацуурын одоогийн чимэглэлүүд багтана.':'Threads-д гацуурын нэр, холбоос, Bantan-гийн гацуурын ерөнхий зураг харагдана.'}</p>
+        {format==='story'&&<><button type="button" className="live-button" disabled={!file || sharing} onClick={()=>void shareImage()}>{sharing?'Хуваалцаж байна…':'Instagram-д зураг хуваалцах ↗'}</button>
+        {preview?<a className="ghost-button" href={preview} download={`bantan-tree-${format}.png`}>PNG зураг хадгалах ↓</a>:<button type="button" className="ghost-button" disabled={loading} onClick={()=>void prepare(format)}>{loading?'Бэлдэж байна…':'Зургийг дахин бэлдэх'}</button>}</>}
         <div className="tree-share-divider"/>
         <button type="button" className="ghost-button" onClick={()=>void shareLink()}>Холбоос хуваалцах ↗</button>
-        <a className="ghost-button facebook-share-link" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`} target="_blank" rel="noopener noreferrer">Facebook дээр хуваалцах</a>
+        <a className={format==='threads'?'live-button':'ghost-button'} href={`https://www.threads.com/intent/post?text=${encodeURIComponent('Миний гацуурыг чимэглээрэй!')}&url=${encodeURIComponent(url)}`} target="_blank" rel="noopener noreferrer">Threads дээр хуваалцах ↗</a>
         <label className="share-link-label" htmlFor="tree-share-link">Таны гацуурын холбоос</label><div className="tree-share-link-field"><input id="tree-share-link" value={url} readOnly onFocus={event=>event.target.select()}/><button type="button" onClick={()=>void copyLink()}>Хуулах</button></div>
-        <p className="tree-share-hint">Зургаа Story-д оруулаад <strong>Link sticker</strong> дээр гацуурынхаа холбоосыг нэмээрэй. Зураг өөрөө дарагддаг холбоос агуулахгүй.</p>
+        {format==='story'&&<ol className="tree-share-hint"><li>Зургаа хадгалах эсвэл хуваалцах цонхноос Instagram сонгоно.</li><li>Дээрх холбоосыг хуулна.</li><li>Instagram Story → Stickers → <strong>Link</strong> дээр холбоосоо оруулна. Энэ sticker дээр дарж таны гацуурт зочилно.</li></ol>}
         {error&&<p className="auth-message" role="alert">{error}</p>}{notice&&<p className="community-status" role="status">{notice}</p>}
       </div></div>
     </dialog>

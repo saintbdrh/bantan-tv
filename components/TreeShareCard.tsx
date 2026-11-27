@@ -11,7 +11,7 @@ function Decoration({kind}:{kind:OrnamentKind}) {
   return <g><rect x="-5" y="-21" width="10" height="7" rx="2" fill="#e6c98f"/><circle r="17" fill="#e97163" stroke="#f9bd9d" strokeWidth="1.5"/><ellipse cx="-5" cy="-5" rx="4" ry="7" fill="#fff0d4" opacity=".55"/></g>;
 }
 
-function ShareTree({tree,width,height,top,left}:{tree:SharedTree;width:number;height:number;top?:number;left?:number}) {
+export function ShareTree({tree,width,height,top,left}:{tree:SharedTree;width:number;height:number;top?:number;left?:number}) {
   return <svg style={{position:'absolute',top,left,width,height}} xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox="0 0 400 520">
     <defs><linearGradient id="share-pine" x1="0" x2="1"><stop stopColor="#124a3b"/><stop offset=".5" stopColor="#3a9c72"/><stop offset="1" stopColor="#104333"/></linearGradient><radialGradient id="share-glow"><stop stopColor="#75caa2" stopOpacity=".28"/><stop offset="1" stopColor="#75caa2" stopOpacity="0"/></radialGradient></defs>
     <ellipse cx="200" cy="290" rx="190" ry="220" fill="url(#share-glow)"/>

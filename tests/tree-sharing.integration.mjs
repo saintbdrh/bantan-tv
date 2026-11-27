@@ -9,7 +9,7 @@ const treeId=randomUUID();const userId=randomUUID();
 function sql(command){execFileSync(process.execPath,[path.join('node_modules','wrangler','bin','wrangler.js'),'d1','execute','bantan-tv-db','--local','--command',command],{stdio:'pipe'});}
 sql(`INSERT INTO users (id,full_name,email,password_hash,created_at) VALUES ('${userId}','Sharing QA','sharing-${userId}@example.test','unused-fixture',datetime('now')); INSERT INTO trees (id,user_id,title,created_at) VALUES ('${treeId}','${userId}','Миний шинэ жилийн гацуур',datetime('now')); INSERT INTO tree_ornaments (id,tree_id,author_id,slot,kind,message,created_at) VALUES ('${randomUUID()}','${treeId}','${userId}',1,'heart','This wish must not be exported',datetime('now'));`);
 try {
-for(const format of ['story','card']) {
+for(const format of ['card']) {
   const response=await fetch(`${base}/trees/${treeId}/share-image?format=${format}`);
   assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/^image\/png/);
   const bytes=Buffer.from(await response.arrayBuffer());
@@ -25,7 +25,9 @@ assert.equal(missing.status,404);
 const html=await (await fetch(`${base}/trees/${treeId}`,{headers:{'User-Agent':'facebookexternalhit/1.1'}})).text();
 assert.match(html,/property="og:image"/);assert.match(html,/property="og:image:width" content="1200"/);
 assert.match(html,/name="twitter:card" content="summary_large_image"/);
+assert.match(html,/images\/tree-link-preview\.png/);
 assert(!html.includes('undefined/share-image'));
-console.log('PASS: portrait/landscape PNG sizes, visible tree rendering, missing-tree handling, and server-rendered social metadata.');
+assert(!html.includes('This wish must not be exported'));
+console.log('PASS: static link artwork dimensions, visible tree, old-image URL compatibility, missing trees and social metadata. Story PNG generation is checked in the browser.');
 
 } finally {sql(`DELETE FROM tree_ornaments WHERE tree_id='${treeId}'; DELETE FROM trees WHERE id='${treeId}'; DELETE FROM users WHERE id='${userId}';`);}

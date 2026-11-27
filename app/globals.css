@@ -2639,7 +2639,7 @@ button {
 .tree-share-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:start;}
 .tree-share-preview {background:radial-gradient(ellipse at 50% 40%,#1e4e3a,#061510);border:1px solid #e4cf9e25;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .tree-share-preview.story {aspect-ratio:9/16;margin:auto;width:min(100%,300px);}
-.tree-share-preview.card {aspect-ratio:1200/630;margin-top:50px;}
+.tree-share-preview.threads {aspect-ratio:1200/630;margin-top:50px;}
 .tree-share-preview img {width:100%;height:auto;display:block;}
 .tree-share-placeholder {font-size:13px;color:#d9d5bf;padding:20px;text-align:center;}
 .tree-share-options {display:flex;flex-direction:column;gap:12px;}
@@ -2662,5 +2662,5 @@ button {
  .tree-share-header h2 {font-size:20px;}
  .tree-share-layout {grid-template-columns:1fr;gap:20px;}
  .tree-share-preview.story {max-width:250px;max-height:none;}
- .tree-share-preview.card {margin-top:0;}
+ .tree-share-preview.threads {margin-top:0;}
 }

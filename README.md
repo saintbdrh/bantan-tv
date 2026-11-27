@@ -137,3 +137,11 @@ The Threads button uses the official `https://www.threads.com/intent/post` compo
 No runtime PNG rasterization is required on Workers Free. The earlier private image Worker remains as an optional legacy renderer; normal site deployment and sharing no longer call or deploy it. No plan upgrade is required for this flow.
 
 With the local app running on port 3002 and local D1 migrations applied, `npm run test:sharing` creates disposable local fixtures and checks static artwork dimensions, the old image URL, missing trees and crawler metadata. Verify browser-generated Story dimensions and native sharing separately on supported devices. No production fixtures or social posts are created.
+
+### Bantan TV community tree
+
+`/trees/bantan-tv` is the official shared tree, featured above personal trees on `/trees`. It has 196 places, a full-tree overview, and a zoomable board for choosing positions. Its built-in lights and small baubles are visual decoration, not fabricated visitor wishes. A shortcut finds a free place and opens the wish editor. Signed-in visitors can leave five decorations and remove their own; quotas and slot claims are enforced atomically in D1.
+
+Migration `0005_community_tree.sql` adds a separate community ornament table. It does not change personal trees or create a synthetic user account. Apply migrations before deploying the site. Run `npm run test:community-tree` against local Next dev on port 3002 to check persistence, authorization, quotas, concurrent claims and personal-tree limits.
+
+The Story share button starts link copying and native image sharing in the same tap, without awaiting the clipboard before opening the share sheet. Devices without file sharing download the PNG instead. If clipboard access fails, the dialog retains a copy button and selectable URL. Adding Instagram's actual Link sticker remains a manual step.

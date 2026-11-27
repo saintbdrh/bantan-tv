@@ -43,12 +43,25 @@ export function TreeShareControls({id,title,ornaments}:{id:string;title:string;o
   function close(){pending.current?.abort();dialog.current?.close();}
 
   async function shareImage() {
-    if(!file)return;
-    if(!navigator.canShare?.({files:[file]})) {setNotice('Энэ төхөөрөмж зураг шууд хуваалцахгүй байна. Зургаа хадгалаад Instagram Story-д оруулаарай.');return;}
+    if(!file || sharing)return;
     setSharing(true);setError('');setNotice('');
-    try {await navigator.share({files:[file]});}
-    catch(error){if(!(error instanceof DOMException && error.name==='AbortError'))setError('Хуваалцах цонх нээгдсэнгүй. Зураг хадгалах сонголтыг ашиглаарай.');}
-    finally{setSharing(false);}
+    // Start both privileged operations in the original tap; awaiting the
+    // clipboard first can lose the user activation required by file sharing.
+    const copied=navigator.clipboard?.writeText(url).then(()=>true,()=>false) ?? Promise.resolve(false);
+    let shareResult:Promise<unknown>|null=null;
+    try {
+      if(navigator.canShare?.({files:[file]})) {
+        shareResult=navigator.share({files:[file]}).then(()=>null,error=>error);
+      } else if(objectUrl.current) {
+        const link=document.createElement('a');link.href=objectUrl.current;link.download='bantan-tree-story.png';link.click();
+      }
+      const didCopy=await copied;
+      setNotice(didCopy?'Холбоос хууллаа! Instagram Story → Stickers → Link → Paste.':'Холбоос автоматаар хуулагдсангүй. Доорх Хуулах товч эсвэл холбоосын талбарыг ашиглаарай.');
+      const result=await shareResult;
+      if(result && !(result instanceof DOMException && result.name==='AbortError'))setError('Зураг хуваалцах цонх нээгдсэнгүй. PNG зураг хадгалах товчийг ашиглаарай.');
+      if(!shareResult && didCopy)setNotice('Зургийг татлаа, холбоосыг хууллаа. Instagram Story-д зургаа сонгоод Link sticker дээр Paste хийнэ үү.');
+    } catch {setError('PNG зураг хадгалах болон Хуулах товчийг ашиглаарай.');}
+    finally {setSharing(false);}
   }
   async function shareLink() {
     setError('');setNotice('');
@@ -71,13 +84,13 @@ export function TreeShareControls({id,title,ornaments}:{id:string;title:string;o
       </div><div className="tree-share-options">
         <div className="share-format-options" role="group" aria-label="Зургийн хэмжээ"><button type="button" className={format==='story'?'selected':''} aria-pressed={format==='story'} onClick={()=>void prepare('story')}>Story <span>9:16</span></button><button type="button" className={format==='threads'?'selected':''} aria-pressed={format==='threads'} onClick={()=>void prepare('threads')}>Threads <span>Холбоос</span></button></div>
         <p className="community-muted">{format==='story'?'Instagram Story зурагт таны гацуурын одоогийн чимэглэлүүд багтана.':'Threads-д гацуурын нэр, холбоос, Bantan-гийн гацуурын ерөнхий зураг харагдана.'}</p>
-        {format==='story'&&<><button type="button" className="live-button" disabled={!file || sharing} onClick={()=>void shareImage()}>{sharing?'Хуваалцаж байна…':'Instagram-д зураг хуваалцах ↗'}</button>
+        {format==='story'&&<><button type="button" className="live-button" disabled={!file || sharing} onClick={()=>void shareImage()}>{sharing?'Хуваалцаж байна…':'Холбоос хуулаад зураг хуваалцах ↗'}</button>
         {preview?<a className="ghost-button" href={preview} download={`bantan-tree-${format}.png`}>PNG зураг хадгалах ↓</a>:<button type="button" className="ghost-button" disabled={loading} onClick={()=>void prepare(format)}>{loading?'Бэлдэж байна…':'Зургийг дахин бэлдэх'}</button>}</>}
         <div className="tree-share-divider"/>
         <button type="button" className="ghost-button" onClick={()=>void shareLink()}>Холбоос хуваалцах ↗</button>
         <a className={format==='threads'?'live-button':'ghost-button'} href={`https://www.threads.com/intent/post?text=${encodeURIComponent('Миний гацуурыг чимэглээрэй!')}&url=${encodeURIComponent(url)}`} target="_blank" rel="noopener noreferrer">Threads дээр хуваалцах ↗</a>
         <label className="share-link-label" htmlFor="tree-share-link">Таны гацуурын холбоос</label><div className="tree-share-link-field"><input id="tree-share-link" value={url} readOnly onFocus={event=>event.target.select()}/><button type="button" onClick={()=>void copyLink()}>Хуулах</button></div>
-        {format==='story'&&<ol className="tree-share-hint"><li>Зургаа хадгалах эсвэл хуваалцах цонхноос Instagram сонгоно.</li><li>Дээрх холбоосыг хуулна.</li><li>Instagram Story → Stickers → <strong>Link</strong> дээр холбоосоо оруулна. Энэ sticker дээр дарж таны гацуурт зочилно.</li></ol>}
+        {format==='story'&&<ol className="tree-share-hint"><li>Дээрх товчийг дараад хуваалцах цонхноос Instagram сонгоно.</li><li>Гацуурын холбоос давхар хуулагдана.</li><li>Instagram Story → Stickers → <strong>Link</strong> дээр холбоосоо оруулна. Энэ sticker дээр дарж таны гацуурт зочилно.</li></ol>}
         {error&&<p className="auth-message" role="alert">{error}</p>}{notice&&<p className="community-status" role="status">{notice}</p>}
       </div></div>
     </dialog>
